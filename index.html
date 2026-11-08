@@ -7,6 +7,81 @@
         content="width=device-width, initial-scale=1">
   <title>Community Dog Walks</title>
 
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.calendar-controls button {
+  background: #347a49;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+
+.calendar-controls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+#calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.calendar-day {
+  padding: 12px 0;
+  border: none;
+  border-radius: 8px;
+  background: #e1eee1;
+  cursor: pointer;
+}
+
+.calendar-day:disabled {
+  background: #eeeeee;
+  color: #999999;
+  cursor: not-allowed;
+}
+
+.calendar-day.selected {
+  background: #347a49;
+  color: white;
+}
+
+#available-times {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.time-button {
+  background: white;
+  border: 2px solid #347a49;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.time-button.selected {
+  background: #347a49;
+  color: white;
+}
+
+@media (max-width: 500px) {
+  .booking-box {
+    padding: 18px;
+  }
+
+  .calendar-day {
+    padding: 10px 0;
+  }
+}
+
   <style>
     * {
       box-sizing: border-box;
@@ -219,48 +294,43 @@
     </div>
   </section>
 
-  <section id="booking">
-    <div class="content">
-      <h2>Request a Free Dog Walk</h2>
 
-      <p>
-        Choose a preferred day and time below.
-        All requests must be confirmed.
-      </p>
+<section id="booking">
+  <div class="content">
+    <h2>Book a Free Dog Walk</h2>
+    <p>Choose a preferred date and time.
+       All requests require confirmation.</p>
 
-      <div class="booking-box">
-        <h3>Choose Your Preferred Time</h3>
+    <div class="booking-box">
+      <h3 id="calendar-title"></h3>
 
-        <label for="day">Day</label>
-        <select id="day">
-          <option value="">Select a day</option>
-          <option value="Saturday">Saturday</option>
-          <option value="Sunday">Sunday</option>
-        </select>
-
-        <label for="time">Time</label>
-        <select id="time">
-          <option value="">Select a time</option>
-          <option value="10:00 AM">10:00 AM</option>
-          <option value="11:00 AM">11:00 AM</option>
-          <option value="2:00 PM">2:00 PM</option>
-          <option value="3:00 PM">3:00 PM</option>
-        </select>
-
-        <button class="button"
-                onclick="requestWalk()">
-          Continue
+      <div class="calendar-controls">
+        <button id="previous-month" type="button">
+          &lt;
         </button>
-
-        <p id="selection"></p>
-
-        <p class="note">
-          Online requests are not yet enabled.
-          Please check back when we launch.
-        </p>
+        <button id="next-month" type="button">
+          &gt;
+        </button>
       </div>
+
+      <div id="calendar-grid"></div>
+
+      <h3 id="selected-date">
+        Select an available date
+      </h3>
+
+      <div id="available-times"></div>
+
+      <p id="booking-message"></p>
+
+      <p class="note">
+        This calendar is in testing mode.
+        Online requests are not yet enabled.
+      </p>
     </div>
-  </section>
+  </div>
+</section>
+
 
   <section id="contact">
     <div class="content">
@@ -296,6 +366,159 @@
         ". Online requests are coming soon!";
     }
   </script>
+
+<script>
+  // Today's date, without the time.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Show today plus the next 29 days.
+  const lastDate = new Date(today);
+  lastDate.setDate(today.getDate() + 29);
+
+  let visibleMonth = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    1
+  );
+
+  let selectedDate = null;
+  let selectedTime = null;
+
+  const calendar = document.getElementById("calendar-grid");
+  const title = document.getElementById("calendar-title");
+  const times = document.getElementById("available-times");
+
+  // Example availability. Change these later!
+  const schedule = {
+    0: ["4:00 PM", "5:00 PM"], // Sunday
+    6: ["3:30 PM", "4:30 PM"]  // Saturday
+  };
+
+  function showCalendar() {
+    calendar.innerHTML = "";
+    title.textContent = visibleMonth.toLocaleDateString(
+      "en-US",
+      { month: "long", year: "numeric" }
+    );
+
+    // Add weekday headings.
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      .forEach(day => {
+        const label = document.createElement("strong");
+        label.textContent = day;
+        calendar.appendChild(label);
+      });
+
+    const year = visibleMonth.getFullYear();
+    const month = visibleMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    // Empty cells before the first day.
+    for (let i = 0; i < firstDay; i++) {
+      calendar.appendChild(document.createElement("span"));
+    }
+
+    for (let day = 1; day <= totalDays; day++) {
+      const date = new Date(year, month, day);
+      const button = document.createElement("button");
+
+      button.className = "calendar-day";
+      button.textContent = day;
+
+      const available =
+        date >= today &&
+        date <= lastDate &&
+        schedule[date.getDay()] !== undefined;
+
+      button.disabled = !available;
+
+      if (
+        selectedDate &&
+        selectedDate.getTime() === date.getTime()
+      ) {
+        button.classList.add("selected");
+      }
+
+      button.addEventListener("click", () => {
+        selectedDate = date;
+        selectedTime = null;
+        document.getElementById("booking-message")
+          .textContent = "";
+        showCalendar();
+        showTimes();
+      });
+
+      calendar.appendChild(button);
+    }
+
+    document.getElementById("previous-month").disabled =
+      year === today.getFullYear() &&
+      month === today.getMonth();
+
+    document.getElementById("next-month").disabled =
+      year === lastDate.getFullYear() &&
+      month === lastDate.getMonth();
+  }
+
+  function showTimes() {
+    times.innerHTML = "";
+
+    document.getElementById("selected-date").textContent =
+      selectedDate.toLocaleDateString(
+        "en-US",
+        { weekday: "long", month: "long", day: "numeric" }
+      );
+
+    schedule[selectedDate.getDay()].forEach(time => {
+      const button = document.createElement("button");
+      button.className = "time-button";
+      button.textContent = time;
+
+      button.addEventListener("click", () => {
+        selectedTime = time;
+
+        document.querySelectorAll(".time-button")
+          .forEach(b => b.classList.remove("selected"));
+
+        button.classList.add("selected");
+
+        document.getElementById("booking-message")
+          .textContent =
+            "Selected: " +
+            selectedDate.toDateString() +
+            " at " + selectedTime +
+            ". Online booking is coming soon!";
+      });
+
+      times.appendChild(button);
+    });
+  }
+
+  document.getElementById("previous-month")
+    .addEventListener("click", () => {
+      visibleMonth = new Date(
+        visibleMonth.getFullYear(),
+        visibleMonth.getMonth() - 1,
+        1
+      );
+      showCalendar();
+    });
+
+  document.getElementById("next-month")
+    .addEventListener("click", () => {
+      visibleMonth = new Date(
+        visibleMonth.getFullYear(),
+        visibleMonth.getMonth() + 1,
+        1
+      );
+      showCalendar();
+    });
+
+  showCalendar();
+</script>
 
 </body>
 </html>
