@@ -3,61 +3,299 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
   <title>Community Dog Walks</title>
+
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4f8f3;
+      background: #faf9f5;
+      color: #243d30;
+      line-height: 1.6;
+    }
+
+    header {
+      background: white;
+      padding: 20px 8%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    nav a {
+      color: #243d30;
+      margin-left: 20px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .hero {
+      background: #e7f0e5;
       text-align: center;
-      padding: 40px 20px;
-      color: #263b2b;
+      padding: 90px 20px;
     }
 
-    .container {
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 56px);
+      margin-bottom: 15px;
+    }
+
+    .hero p {
+      font-size: 19px;
       max-width: 650px;
-      margin: auto;
-    }
-
-    h1 {
-      font-size: 38px;
+      margin: 0 auto 30px;
     }
 
     .button {
       display: inline-block;
       background: #347a49;
       color: white;
-      padding: 14px 25px;
-      border-radius: 8px;
+      border: none;
+      border-radius: 10px;
+      padding: 15px 25px;
       text-decoration: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background: #245b36;
+    }
+
+    section {
+      padding: 70px 20px;
+      text-align: center;
+    }
+
+    .content {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h2 {
+      font-size: 32px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(
+        auto-fit, minmax(210px, 1fr)
+      );
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px #0000000d;
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    #booking {
+      background: #eef4ec;
+    }
+
+    .booking-box {
+      background: white;
+      border-radius: 16px;
+      padding: 35px;
+      max-width: 550px;
+      margin: 30px auto 0;
+      box-shadow: 0 4px 15px #0000000d;
+    }
+
+    select {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin: 15px 0;
+      border: 1px solid #cbd6cb;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    #selection {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .note {
+      color: #59665e;
+      font-size: 14px;
+    }
+
+    footer {
+      background: #243d30;
+      color: white;
+      text-align: center;
+      padding: 30px;
     }
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <h1>Community Dog Walks 🐕</h1>
 
-    <h2>Free Dog Walking for Neighbors in Need</h2>
+  <header>
+    <div class="logo">🐾 Community Dog Walks</div>
+
+    <nav>
+      <a href="#about">About</a>
+      <a href="#booking">Book a Walk</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>Helping Neighbors,<br>One Walk at a Time.</h1>
 
     <p>
-      We're here to help older adults, people
-      recovering from injuries, and neighbors
-      who need extra assistance caring for
-      their dogs.
+      Free dog walking for older adults,
+      people recovering from injuries,
+      and neighbors who need a helping hand.
     </p>
 
-    <p>
-      Our mission is simple: help our community,
-      one walk at a time.
-    </p>
-
-    <a class="button" href="#coming-soon">
-      Request a Walk
+    <a href="#booking" class="button">
+      Request a Free Walk
     </a>
-
-    <p id="coming-soon">
-      Online booking coming soon!
-    </p>
   </div>
+
+  <section id="about">
+    <div class="content">
+      <h2>Our Mission</h2>
+
+      <p>
+        Community Dog Walks is a student-led
+        volunteer initiative dedicated to helping
+        neighbors care for their dogs.
+        We believe everyone deserves support,
+        especially when everyday tasks
+        become difficult.
+      </p>
+
+      <div class="cards">
+        <div class="card">
+          <h3>🐕 Completely Free</h3>
+          <p>
+            Our dog-walking service is provided
+            at no cost to neighbors in need.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>❤️ Community Focused</h3>
+          <p>
+            We're committed to helping people
+            who could use extra assistance.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>📅 Easy Requests</h3>
+          <p>
+            Select a preferred time and
+            request a walk online.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="booking">
+    <div class="content">
+      <h2>Request a Free Dog Walk</h2>
+
+      <p>
+        Choose a preferred day and time below.
+        All requests must be confirmed.
+      </p>
+
+      <div class="booking-box">
+        <h3>Choose Your Preferred Time</h3>
+
+        <label for="day">Day</label>
+        <select id="day">
+          <option value="">Select a day</option>
+          <option value="Saturday">Saturday</option>
+          <option value="Sunday">Sunday</option>
+        </select>
+
+        <label for="time">Time</label>
+        <select id="time">
+          <option value="">Select a time</option>
+          <option value="10:00 AM">10:00 AM</option>
+          <option value="11:00 AM">11:00 AM</option>
+          <option value="2:00 PM">2:00 PM</option>
+          <option value="3:00 PM">3:00 PM</option>
+        </select>
+
+        <button class="button"
+                onclick="requestWalk()">
+          Continue
+        </button>
+
+        <p id="selection"></p>
+
+        <p class="note">
+          Online requests are not yet enabled.
+          Please check back when we launch.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="content">
+      <h2>Get Involved</h2>
+      <p>
+        Interested in requesting a walk
+        or learning more about our project?
+        Contact information will be available
+        when the service launches.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>🐾 Community Dog Walks</p>
+    <p>Student-led. Community-focused. Always free.</p>
+  </footer>
+
+  <script>
+    function requestWalk() {
+      const day = document.getElementById("day").value;
+      const time = document.getElementById("time").value;
+      const result = document.getElementById("selection");
+
+      if (!day || !time) {
+        result.textContent =
+          "Please select both a day and a time.";
+        return;
+      }
+
+      result.textContent =
+        "You selected " + day + " at " + time +
+        ". Online requests are coming soon!";
+    }
+  </script>
+
 </body>
 </html>
