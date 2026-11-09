@@ -5,84 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
+
   <title>Community Dog Walks</title>
 
-.calendar-controls {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-}
-
-.calendar-controls button {
-  background: #347a49;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 18px;
-  cursor: pointer;
-}
-
-.calendar-controls button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-#calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.calendar-day {
-  padding: 12px 0;
-  border: none;
-  border-radius: 8px;
-  background: #e1eee1;
-  cursor: pointer;
-}
-
-.calendar-day:disabled {
-  background: #eeeeee;
-  color: #999999;
-  cursor: not-allowed;
-}
-
-.calendar-day.selected {
-  background: #347a49;
-  color: white;
-}
-
-#available-times {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.time-button {
-  background: white;
-  border: 2px solid #347a49;
-  border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
-}
-
-.time-button.selected {
-  background: #347a49;
-  color: white;
-}
-
-@media (max-width: 500px) {
-  .booking-box {
-    padding: 18px;
-  }
-
-  .calendar-day {
-    padding: 10px 0;
-  }
-}
-
   <style>
+    /* GENERAL WEBSITE DESIGN */
+
     * {
       box-sizing: border-box;
     }
@@ -117,6 +45,12 @@
       font-weight: bold;
     }
 
+    nav a:hover {
+      color: #347a49;
+    }
+
+    /* HOMEPAGE */
+
     .hero {
       background: #e7f0e5;
       text-align: center;
@@ -126,6 +60,7 @@
     .hero h1 {
       font-size: clamp(34px, 6vw, 56px);
       margin-bottom: 15px;
+      line-height: 1.2;
     }
 
     .hero p {
@@ -151,6 +86,8 @@
       background: #245b36;
     }
 
+    /* SECTIONS */
+
     section {
       padding: 70px 20px;
       text-align: center;
@@ -167,9 +104,8 @@
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(
-        auto-fit, minmax(210px, 1fr)
-      );
+      grid-template-columns:
+        repeat(auto-fit, minmax(210px, 1fr));
       gap: 20px;
       margin-top: 30px;
     }
@@ -185,6 +121,8 @@
       margin-top: 0;
     }
 
+    /* BOOKING SECTION */
+
     #booking {
       background: #eef4ec;
     }
@@ -193,30 +131,164 @@
       background: white;
       border-radius: 16px;
       padding: 35px;
-      max-width: 550px;
+      max-width: 600px;
       margin: 30px auto 0;
       box-shadow: 0 4px 15px #0000000d;
-    }
-
-    select {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      margin: 15px 0;
-      border: 1px solid #cbd6cb;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    #selection {
-      margin-top: 15px;
-      font-weight: bold;
     }
 
     .note {
       color: #59665e;
       font-size: 14px;
+      margin-top: 25px;
     }
+
+    /* CALENDAR */
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    #calendar-title {
+      font-size: 23px;
+      margin: 0;
+    }
+
+    .calendar-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .calendar-controls button {
+      background: #347a49;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .calendar-controls button:hover {
+      background: #245b36;
+    }
+
+    .calendar-controls button:disabled {
+      background: #dddddd;
+      color: #999999;
+      cursor: not-allowed;
+    }
+
+    #calendar-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .weekday-label {
+      padding: 10px 0;
+      font-size: 13px;
+      font-weight: bold;
+      color: #59665e;
+      text-align: center;
+    }
+
+    .calendar-day {
+      min-height: 48px;
+      border: none;
+      border-radius: 8px;
+      background: #e1eee1;
+      color: #243d30;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .calendar-day:hover:not(:disabled) {
+      background: #c3ddc5;
+    }
+
+    .calendar-day:disabled {
+      background: #f1f1f1;
+      color: #aaaaaa;
+      cursor: not-allowed;
+    }
+
+    .calendar-day.selected {
+      background: #347a49;
+      color: white;
+    }
+
+    .calendar-legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 18px;
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      background: #e1eee1;
+    }
+
+    .legend-color.unavailable {
+      background: #f1f1f1;
+      border: 1px solid #dddddd;
+    }
+
+    /* AVAILABLE TIMES */
+
+    #selected-date {
+      margin-top: 35px;
+    }
+
+    #available-times {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .time-button {
+      background: white;
+      color: #347a49;
+      border: 2px solid #347a49;
+      border-radius: 8px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .time-button:hover {
+      background: #e1eee1;
+    }
+
+    .time-button.selected {
+      background: #347a49;
+      color: white;
+    }
+
+    #booking-message {
+      margin-top: 25px;
+      font-weight: bold;
+      color: #347a49;
+    }
+
+    /* FOOTER */
 
     footer {
       background: #243d30;
@@ -224,13 +296,52 @@
       text-align: center;
       padding: 30px;
     }
+
+    /* MOBILE DESIGN */
+
+    @media (max-width: 500px) {
+      header {
+        justify-content: center;
+        text-align: center;
+      }
+
+      nav a {
+        margin: 0 8px;
+        font-size: 14px;
+      }
+
+      .hero {
+        padding: 60px 20px;
+      }
+
+      .booking-box {
+        padding: 18px;
+      }
+
+      #calendar-grid {
+        gap: 4px;
+      }
+
+      .calendar-day {
+        min-height: 40px;
+        font-size: 13px;
+      }
+
+      #calendar-title {
+        font-size: 18px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
+  <!-- NAVIGATION -->
+
   <header>
-    <div class="logo">🐾 Community Dog Walks</div>
+    <div class="logo">
+      🐾 Community Dog Walks
+    </div>
 
     <nav>
       <a href="#about">About</a>
@@ -239,8 +350,13 @@
     </nav>
   </header>
 
+  <!-- HOMEPAGE -->
+
   <div class="hero">
-    <h1>Helping Neighbors,<br>One Walk at a Time.</h1>
+    <h1>
+      Helping Neighbors,<br>
+      One Walk at a Time.
+    </h1>
 
     <p>
       Free dog walking for older adults,
@@ -253,20 +369,25 @@
     </a>
   </div>
 
+  <!-- ABOUT SECTION -->
+
   <section id="about">
     <div class="content">
+
       <h2>Our Mission</h2>
 
       <p>
         Community Dog Walks is a student-led
         volunteer initiative dedicated to helping
         neighbors care for their dogs.
+
         We believe everyone deserves support,
-        especially when everyday tasks
-        become difficult.
+        especially when everyday tasks become
+        difficult.
       </p>
 
       <div class="cards">
+
         <div class="card">
           <h3>🐕 Completely Free</h3>
           <p>
@@ -286,239 +407,382 @@
         <div class="card">
           <h3>📅 Easy Requests</h3>
           <p>
-            Select a preferred time and
-            request a walk online.
+            Select a preferred date and time
+            using our online calendar.
           </p>
         </div>
+
       </div>
     </div>
   </section>
 
+  <!-- BOOKING SECTION -->
 
-<section id="booking">
-  <div class="content">
-    <h2>Book a Free Dog Walk</h2>
-    <p>Choose a preferred date and time.
-       All requests require confirmation.</p>
+  <section id="booking">
+    <div class="content">
 
-    <div class="booking-box">
-      <h3 id="calendar-title"></h3>
+      <h2>Book a Free Dog Walk</h2>
 
-      <div class="calendar-controls">
-        <button id="previous-month" type="button">
-          &lt;
-        </button>
-        <button id="next-month" type="button">
-          &gt;
-        </button>
-      </div>
-
-      <div id="calendar-grid"></div>
-
-      <h3 id="selected-date">
-        Select an available date
-      </h3>
-
-      <div id="available-times"></div>
-
-      <p id="booking-message"></p>
-
-      <p class="note">
-        This calendar is in testing mode.
-        Online requests are not yet enabled.
+      <p>
+        Choose a preferred date and time.
+        All appointments require confirmation.
       </p>
-    </div>
-  </div>
-</section>
 
+      <div class="booking-box">
+
+        <div class="calendar-header">
+
+          <h3 id="calendar-title"></h3>
+
+          <div class="calendar-controls">
+            <button
+              id="previous-month"
+              type="button"
+              aria-label="Previous month">
+              &#8249;
+            </button>
+
+            <button
+              id="next-month"
+              type="button"
+              aria-label="Next month">
+              &#8250;
+            </button>
+          </div>
+
+        </div>
+
+        <div id="calendar-grid"></div>
+
+        <div class="calendar-legend">
+
+          <div class="legend-item">
+            <div class="legend-color"></div>
+            Available
+          </div>
+
+          <div class="legend-item">
+            <div class="legend-color unavailable"></div>
+            Unavailable
+          </div>
+
+        </div>
+
+        <h3 id="selected-date">
+          Select an available date
+        </h3>
+
+        <div id="available-times"></div>
+
+        <p id="booking-message"></p>
+
+        <p class="note">
+          This calendar is currently in testing mode.
+          Online appointment requests are not yet
+          enabled. Selecting a time does not
+          reserve an appointment.
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT SECTION -->
 
   <section id="contact">
     <div class="content">
+
       <h2>Get Involved</h2>
+
       <p>
         Interested in requesting a walk
         or learning more about our project?
         Contact information will be available
         when the service launches.
       </p>
+
     </div>
   </section>
 
+  <!-- FOOTER -->
+
   <footer>
     <p>🐾 Community Dog Walks</p>
-    <p>Student-led. Community-focused. Always free.</p>
+    <p>
+      Student-led. Community-focused. Always free.
+    </p>
   </footer>
 
+  <!-- INTERACTIVE CALENDAR JAVASCRIPT -->
+
   <script>
-    function requestWalk() {
-      const day = document.getElementById("day").value;
-      const time = document.getElementById("time").value;
-      const result = document.getElementById("selection");
+    // STEP 1: Determine the 30-day window.
 
-      if (!day || !time) {
-        result.textContent =
-          "Please select both a day and a time.";
-        return;
-      }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-      result.textContent =
-        "You selected " + day + " at " + time +
-        ". Online requests are coming soon!";
-    }
-  </script>
+    const lastDate = new Date(today);
+    lastDate.setDate(today.getDate() + 29);
 
-<script>
-  // Today's date, without the time.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    // STEP 2: Track the current month.
 
-  // Show today plus the next 29 days.
-  const lastDate = new Date(today);
-  lastDate.setDate(today.getDate() + 29);
-
-  let visibleMonth = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    1
-  );
-
-  let selectedDate = null;
-  let selectedTime = null;
-
-  const calendar = document.getElementById("calendar-grid");
-  const title = document.getElementById("calendar-title");
-  const times = document.getElementById("available-times");
-
-  // Example availability. Change these later!
-  const schedule = {
-    0: ["4:00 PM", "5:00 PM"], // Sunday
-    6: ["3:30 PM", "4:30 PM"]  // Saturday
-  };
-
-  function showCalendar() {
-    calendar.innerHTML = "";
-    title.textContent = visibleMonth.toLocaleDateString(
-      "en-US",
-      { month: "long", year: "numeric" }
+    let visibleMonth = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
     );
 
-    // Add weekday headings.
-    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-      .forEach(day => {
-        const label = document.createElement("strong");
+    let selectedDate = null;
+    let selectedTime = null;
+
+    // STEP 3: Find the calendar elements.
+
+    const calendar =
+      document.getElementById("calendar-grid");
+
+    const title =
+      document.getElementById("calendar-title");
+
+    const times =
+      document.getElementById("available-times");
+
+    const message =
+      document.getElementById("booking-message");
+
+    // STEP 4: Set available walking times.
+    //
+    // 0 = Sunday
+    // 1 = Monday
+    // 2 = Tuesday
+    // 3 = Wednesday
+    // 4 = Thursday
+    // 5 = Friday
+    // 6 = Saturday
+    //
+    // These times are EXAMPLES.
+    // We can change them whenever needed.
+
+    const schedule = {
+      0: ["4:00 PM", "5:00 PM"],
+      6: ["3:30 PM", "4:30 PM"]
+    };
+
+    // STEP 5: Draw the calendar.
+
+    function showCalendar() {
+
+      calendar.innerHTML = "";
+
+      const year = visibleMonth.getFullYear();
+      const month = visibleMonth.getMonth();
+
+      title.textContent =
+        visibleMonth.toLocaleDateString(
+          "en-US",
+          { month: "long", year: "numeric" }
+        );
+
+      // Display weekday names.
+
+      const weekdays = [
+        "Sun", "Mon", "Tue", "Wed",
+        "Thu", "Fri", "Sat"
+      ];
+
+      weekdays.forEach(day => {
+        const label =
+          document.createElement("div");
+
+        label.className = "weekday-label";
         label.textContent = day;
+
         calendar.appendChild(label);
       });
 
-    const year = visibleMonth.getFullYear();
-    const month = visibleMonth.getMonth();
+      // Find the first weekday of the month.
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
+      const firstDay =
+        new Date(year, month, 1).getDay();
 
-    // Empty cells before the first day.
-    for (let i = 0; i < firstDay; i++) {
-      calendar.appendChild(document.createElement("span"));
-    }
+      const totalDays =
+        new Date(year, month + 1, 0).getDate();
 
-    for (let day = 1; day <= totalDays; day++) {
-      const date = new Date(year, month, day);
-      const button = document.createElement("button");
+      // Add empty cells before day 1.
 
-      button.className = "calendar-day";
-      button.textContent = day;
+      for (let i = 0; i < firstDay; i++) {
+        const empty =
+          document.createElement("div");
 
-      const available =
-        date >= today &&
-        date <= lastDate &&
-        schedule[date.getDay()] !== undefined;
-
-      button.disabled = !available;
-
-      if (
-        selectedDate &&
-        selectedDate.getTime() === date.getTime()
-      ) {
-        button.classList.add("selected");
+        calendar.appendChild(empty);
       }
 
-      button.addEventListener("click", () => {
-        selectedDate = date;
-        selectedTime = null;
-        document.getElementById("booking-message")
-          .textContent = "";
-        showCalendar();
-        showTimes();
-      });
+      // Create each day button.
 
-      calendar.appendChild(button);
+      for (let day = 1; day <= totalDays; day++) {
+
+        const date =
+          new Date(year, month, day);
+
+        const button =
+          document.createElement("button");
+
+        button.type = "button";
+        button.className = "calendar-day";
+        button.textContent = day;
+
+        // Only allow dates within the next
+        // 30 days that have walking availability.
+
+        const available =
+          date >= today &&
+          date <= lastDate &&
+          schedule[date.getDay()] !== undefined;
+
+        button.disabled = !available;
+
+        // Highlight the selected date.
+
+        if (
+          selectedDate &&
+          selectedDate.getTime() === date.getTime()
+        ) {
+          button.classList.add("selected");
+        }
+
+        // What happens when a date is clicked.
+
+        button.addEventListener("click", () => {
+          selectedDate = date;
+          selectedTime = null;
+
+          message.textContent = "";
+
+          showCalendar();
+          showTimes();
+        });
+
+        calendar.appendChild(button);
+      }
+
+      // Enable or disable month arrows.
+
+      const previous =
+        document.getElementById("previous-month");
+
+      const next =
+        document.getElementById("next-month");
+
+      previous.disabled =
+        year === today.getFullYear() &&
+        month === today.getMonth();
+
+      next.disabled =
+        year === lastDate.getFullYear() &&
+        month === lastDate.getMonth();
     }
 
-    document.getElementById("previous-month").disabled =
-      year === today.getFullYear() &&
-      month === today.getMonth();
+    // STEP 6: Show available times.
 
-    document.getElementById("next-month").disabled =
-      year === lastDate.getFullYear() &&
-      month === lastDate.getMonth();
-  }
+    function showTimes() {
 
-  function showTimes() {
-    times.innerHTML = "";
+      times.innerHTML = "";
 
-    document.getElementById("selected-date").textContent =
-      selectedDate.toLocaleDateString(
-        "en-US",
-        { weekday: "long", month: "long", day: "numeric" }
-      );
+      if (!selectedDate) return;
 
-    schedule[selectedDate.getDay()].forEach(time => {
-      const button = document.createElement("button");
-      button.className = "time-button";
-      button.textContent = time;
+      const heading =
+        document.getElementById("selected-date");
 
-      button.addEventListener("click", () => {
-        selectedTime = time;
+      heading.textContent =
+        selectedDate.toLocaleDateString(
+          "en-US",
+          {
+            weekday: "long",
+            month: "long",
+            day: "numeric"
+          }
+        );
 
-        document.querySelectorAll(".time-button")
-          .forEach(b => b.classList.remove("selected"));
+      const dayOfWeek = selectedDate.getDay();
 
-        button.classList.add("selected");
+      const availableTimes =
+        schedule[dayOfWeek] || [];
 
-        document.getElementById("booking-message")
-          .textContent =
-            "Selected: " +
-            selectedDate.toDateString() +
-            " at " + selectedTime +
-            ". Online booking is coming soon!";
+      availableTimes.forEach(time => {
+
+        const button =
+          document.createElement("button");
+
+        button.type = "button";
+        button.className = "time-button";
+        button.textContent = time;
+
+        // Handle time selection.
+
+        button.addEventListener("click", () => {
+
+          selectedTime = time;
+
+          document.querySelectorAll(
+            ".time-button"
+          ).forEach(b => {
+            b.classList.remove("selected");
+          });
+
+          button.classList.add("selected");
+
+          message.textContent =
+            "You selected " +
+            selectedDate.toLocaleDateString(
+              "en-US",
+              {
+                weekday: "long",
+                month: "long",
+                day: "numeric"
+              }
+            ) +
+            " at " +
+            selectedTime +
+            ". Online requests are coming soon!";
+        });
+
+        times.appendChild(button);
+      });
+    }
+
+    // STEP 7: Previous month button.
+
+    document.getElementById("previous-month")
+      .addEventListener("click", () => {
+
+        visibleMonth = new Date(
+          visibleMonth.getFullYear(),
+          visibleMonth.getMonth() - 1,
+          1
+        );
+
+        showCalendar();
       });
 
-      times.appendChild(button);
-    });
-  }
+    // STEP 8: Next month button.
 
-  document.getElementById("previous-month")
-    .addEventListener("click", () => {
-      visibleMonth = new Date(
-        visibleMonth.getFullYear(),
-        visibleMonth.getMonth() - 1,
-        1
-      );
-      showCalendar();
-    });
+    document.getElementById("next-month")
+      .addEventListener("click", () => {
 
-  document.getElementById("next-month")
-    .addEventListener("click", () => {
-      visibleMonth = new Date(
-        visibleMonth.getFullYear(),
-        visibleMonth.getMonth() + 1,
-        1
-      );
-      showCalendar();
-    });
+        visibleMonth = new Date(
+          visibleMonth.getFullYear(),
+          visibleMonth.getMonth() + 1,
+          1
+        );
 
-  showCalendar();
-</script>
+        showCalendar();
+      });
+
+    // STEP 9: Display the calendar when
+    // the website first opens.
+
+    showCalendar();
+
+  </script>
 
 </body>
 </html>
