@@ -1,0 +1,25 @@
+{
+  "name": "paws-next-door",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.js",
+    "format": "prettier --write index.html src scripts tests supabase/functions vite.config.js README.md SETUP.md DEPLOYMENT.md .github/workflows/*.yml",
+    "build:pages": "node scripts/build-pages.mjs",
+    "verify:release": "node scripts/check-pages-build.mjs",
+    "preview:pages": "vite preview --host localhost --port 5173 --strictPort --base /dog-walking-website/"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.14",
+    "jsdom": "^27.4.0",
+    "prettier": "^3.9.10",
+    "vite": "^7.3.1"
+  }
+}

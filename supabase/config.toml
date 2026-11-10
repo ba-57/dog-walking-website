@@ -1,0 +1,6 @@
+project_id = "paws-next-door"
+
+# Public form requests are verified with Turnstile inside the handler.
+# Admin operations use Supabase Auth and database membership checks.
+[functions.request-walk]
+verify_jwt = false
