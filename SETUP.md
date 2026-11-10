@@ -86,15 +86,13 @@ Use fictional details only until these checks pass:
 7. Review on a phone and desktop, test keyboard navigation and form errors, and verify that only your admin can see contact details.
 8. Test interrupted connections and an expired admin session. The site must show an error, disable stale public availability, and clear private data on session expiry.
 
-Automated `npm test` covers the application DOM and PostgreSQL policies/constraints locally. Hosted Auth/REST wiring and independent-session concurrency require this test project smoke test. The CAPTCHA must also reject an absent, expired, wrong-host or replayed token without creating an appointment. Direct anonymous calls to `request_walk` must fail with a permission error. The GitHub checks workflow runs tests and builds only; it never publishes.
+Automated `npm test` covers the application DOM and PostgreSQL policies/constraints locally. Hosted Auth/REST wiring and independent-session concurrency require this test project smoke test. The CAPTCHA must also reject an absent, expired, wrong-host or replayed token without creating an appointment. Direct anonymous calls to `request_walk` must fail with a permission error. The GitHub review-checks workflow runs tests and builds only; it never publishes. The separate Pages workflow can deploy only from `main` after the owner approves and merges.
 
-## 6. Hosting, only after your review
+## 6. GitHub Pages hosting, only after your review
 
-This is a Vite static site. Its deployable output is **`dist/`**, created by `npm ci && npm run build`. Publishing raw source files as GitHub Pages will not work because source imports need Vite's build step.
+Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the current production instructions. The production command is `npm run build:pages`; it uses `/dog-walking-website/`, requires all three public build variables, and verifies the `dist/` artifact. `npm run preview:pages` serves that build at `http://localhost:5173/dog-walking-website/`.
 
-For GitHub Pages at `https://ba-57.github.io/dog-walking-website/`, set `VITE_BASE_PATH=/dog-walking-website/`. For a custom domain or a site at the domain root, use `/`. Build with your actual Supabase public values. Missing both values produces an intentional setup-pending site, not functioning bookings. Changing build variables requires a rebuild and redeploy.
-
-After approving this branch, configure Pages for an Actions-based build/upload of `dist/`, or use another static host with that build command and output directory. Add your public Supabase variables and the Turnstile site key in the chosen host/build environment. Ensure the production origin is in the Edge Function allowlist and the production hostname is allowed in Turnstile. A Pages deployment workflow has deliberately **not** been added, so this branch's CI cannot launch the site. Verify any existing hosting integration before merging. Serve production over HTTPS.
+The review workflow builds and tests without publishing. The separate Pages workflow tests, builds, and deploys on approved pushes to `main`; it cannot deploy the review branch. Keep the pull request unmerged and leave the existing Pages source unchanged until publication is approved. Do not publish the repository's raw Vite source files.
 
 ## 7. Operating the service
 

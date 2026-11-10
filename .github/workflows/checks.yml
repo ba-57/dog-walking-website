@@ -1,6 +1,7 @@
 name: Review checks
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [feat/community-booking]
 permissions:
@@ -9,8 +10,10 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -18,11 +21,14 @@ jobs:
       - run: npm test
       - name: Build setup-pending site
         run: npm run build
-      - name: Build configured site (compile check only)
-        run: npm run build
+      - name: Build and verify production Pages artifact (no deployment)
+        run: npm run build:pages
         env:
-          VITE_SUPABASE_URL: https://example.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_compile_check_only
-          VITE_TURNSTILE_SITE_KEY: public_compile_check_only
-          VITE_BASE_PATH: /dog-walking-website/
-# This workflow never publishes a site or changes the database.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      - name: Save build for review
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+# This workflow cannot deploy or change Pages settings.

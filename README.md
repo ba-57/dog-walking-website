@@ -1,6 +1,6 @@
 # Paws Next Door
 
-A green-and-white, accessible community-service site with a rolling 30-day walking calendar and a Supabase administrator dashboard. This branch is for review; no site has been published and no live database has been changed.
+A green-and-white, accessible community-service site with a rolling 30-day walking calendar and a Supabase administrator dashboard. The redesigned frontend remains on the review branch until approval. Its Supabase backend is configured separately; adding deployment automation does not publish the frontend.
 
 ## Review locally
 
@@ -23,9 +23,12 @@ The preview flag never connects to Supabase and cannot read or change actual cus
 ```sh
 npm test
 npm run build
+# Real production build, using your local public configuration:
+npm run build:pages
+npm run preview:pages
 ```
 
-See [SETUP.md](SETUP.md) for the Supabase project, administrator account, timezone, and hosting steps. Follow its live smoke test before accepting real requests.
+See [SETUP.md](SETUP.md) for initial Supabase setup and [DEPLOYMENT.md](DEPLOYMENT.md) for exact GitHub Pages variables, production Auth/Turnstile settings, review steps, and owner-controlled publication. Production preview is `http://localhost:5173/dog-walking-website/`; admin login is the same URL with `#admin`.
 
 ## What is included
 
@@ -35,7 +38,8 @@ See [SETUP.md](SETUP.md) for the Supabase project, administrator account, timezo
 - PostgreSQL range exclusion prevents overlapping walking times; a partial unique index allows only one pending/approved request per slot. Database transactions serialize booking and administration changes.
 - Server-verified Cloudflare Turnstile gate for public submissions, with restricted database execution and per-contact limits.
 - Row-level security and restricted grants: visitors cannot read appointment records, edit slots, or appoint themselves as admins. Public calendar output contains only slot IDs, dates/times, timezone and window boundaries.
-- Explicit read-only design preview and a CI workflow that tests/builds without deployment.
+- Explicit read-only design preview and PR checks that build the real production artifact without deployment.
+- A separate Pages workflow deploys only from `main` after approval and merging; production builds always use `/dog-walking-website/` and reject missing/example configuration or detected private credentials.
 
 Approving in the dashboard **does not send an email or text**. The service team must contact the neighbor directly. Requested times are held until an administrator resolves them; there is no automatic expiry. Availability starts empty and must be added by an administrator. One team can walk one dog at a time; multiple simultaneous walkers are outside this design.
 
@@ -47,9 +51,11 @@ Approving in the dashboard **does not send an email or text**. The service team 
 - `supabase/functions/request-walk/` and `supabase/functions/_shared/` — server-only CAPTCHA verification and restricted booking gateway.
 - `src/config.js` — rejects secret/service-role keys during builds.
 - `supabase/migrations/202611100001_booking.sql` — schema, constraints, RLS, grants and RPCs.
+- `scripts/build-pages.mjs` and `scripts/check-pages-build.mjs` — validated Pages build, asset checks, environment-file checks and credential-pattern scanning.
+- `.github/workflows/pages.yml` — main-only GitHub Pages deployment; `checks.yml` never deploys.
 - `tests/` — date boundaries, DOM flows, key validation, and PostgreSQL permissions and lifecycle checks.
 
-Database tests run the migration in PGlite (an embedded PostgreSQL engine) with Supabase-like roles and an `auth.uid()` shim. They test real PostgreSQL RLS/constraints, but do not replace testing Supabase Auth, PostgREST, email delivery, live Turnstile verification, or simultaneous transactions against your hosted project. DOM tests use JSDOM, not a rendered browser. Browser visual QA was unavailable in this task's tool environment; review desktop/mobile layouts before launch.
+Database tests run the migration in PGlite (an embedded PostgreSQL engine) with Supabase-like roles and an `auth.uid()` shim. They test real PostgreSQL RLS/constraints, but do not replace testing Supabase Auth, PostgREST, email delivery, live Turnstile verification, or simultaneous transactions against your hosted project. DOM tests use JSDOM, not a rendered browser. The owner completed local end-to-end checks for login, availability, Turnstile, booking and approve/decline. Browser visual QA in this cloud environment remains unavailable; production-host CAPTCHA and live-browser checks must be completed after the approved first deployment.
 
 ## Assets
 
