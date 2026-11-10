@@ -29,7 +29,7 @@ These are intentionally public browser settings. They belong under **Variables**
 
 The workflow sets the base path itself. You do not need a fourth repository variable. Changing a variable requires another build; it does not update an already-published bundle automatically.
 
-If Codex has functioning GitHub access, it can populate and verify these variables for you using the local configuration without printing their values. Do not send private credentials in chat. If a review check fails because a variable is missing, finish this step and rerun that failed check from the pull request's Checks tab.
+The connected GitHub integration returned HTTP 403 when saving Actions variables: it can update the branch and pull request, but it cannot manage repository variables. Add these three values yourself using the settings page above. Do not send private credentials in chat. The first GitHub production checks stopped because the variables were empty; after saving them, rerun those failed checks from the pull request's Checks tab.
 
 ## 2. Check Supabase Auth
 
