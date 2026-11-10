@@ -1,0 +1,28 @@
+name: Review checks
+on:
+  pull_request:
+  push:
+    branches: [feat/community-booking]
+permissions:
+  contents: read
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build setup-pending site
+        run: npm run build
+      - name: Build configured site (compile check only)
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_compile_check_only
+          VITE_TURNSTILE_SITE_KEY: public_compile_check_only
+          VITE_BASE_PATH: /dog-walking-website/
+# This workflow never publishes a site or changes the database.

@@ -1,0 +1,22 @@
+{
+  "name": "paws-next-door",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.js",
+    "format": "prettier --write index.html src tests supabase/functions vite.config.js README.md SETUP.md .github/workflows/checks.yml"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.14",
+    "jsdom": "^27.4.0",
+    "prettier": "^3.9.10",
+    "vite": "^7.3.1"
+  }
+}
