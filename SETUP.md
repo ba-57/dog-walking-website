@@ -1,6 +1,6 @@
-# External setup and launch review
+# Paws Next Door — setup and operations
 
-Everything on this branch is unpublished. Complete setup in a **test Supabase project first**. Do not merge or change the live hosting source until you have reviewed the design and booking behavior.
+**Status: LIVE.** The redesigned Paws Next Door website is published at https://ba-57.github.io/dog-walking-website/ with its private admin interface at https://ba-57.github.io/dog-walking-website/#admin. The initial Supabase setup, Turnstile configuration, and launch checks have been completed. The sections below remain as reference material for recreating a test environment, maintaining the service, or onboarding another administrator. Do **not** rerun the database migration in the existing production project.
 
 ## 1. Create Supabase and apply the database migration
 
@@ -73,7 +73,7 @@ Use the project's **publishable** key (or legacy **anon** key) from Supabase's A
 
 Restart the dev server after configuration changes. Run `npm run dev`, open `/#admin`, sign in, and add walking times. The public calendar should immediately reflect them after clicking Refresh times. To change a time, close the old slot and add a new one. Active requests must be declined/cancelled before their slot can be changed. Closed slots remain in the dashboard and can be reopened. Blocking a date retains the slots but removes them from public availability until unblocked.
 
-## 5. Review the live test project
+## 5. Regression testing for future changes
 
 Use fictional details only until these checks pass:
 
@@ -88,11 +88,11 @@ Use fictional details only until these checks pass:
 
 Automated `npm test` covers the application DOM and PostgreSQL policies/constraints locally. Hosted Auth/REST wiring and independent-session concurrency require this test project smoke test. The CAPTCHA must also reject an absent, expired, wrong-host or replayed token without creating an appointment. Direct anonymous calls to `request_walk` must fail with a permission error. The GitHub review-checks workflow runs tests and builds only; it never publishes. The separate Pages workflow can deploy only from `main` after the owner approves and merges.
 
-## 6. GitHub Pages hosting, only after your review
+## 6. GitHub Pages hosting and updates
 
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the current production instructions. The production command is `npm run build:pages`; it uses `/dog-walking-website/`, requires all three public build variables, and verifies the `dist/` artifact. `npm run preview:pages` serves that build at `http://localhost:5173/dog-walking-website/`.
 
-The review workflow builds and tests without publishing. The separate Pages workflow tests, builds, and deploys on approved pushes to `main`; it cannot deploy the review branch. Keep the pull request unmerged and leave the existing Pages source unchanged until publication is approved. Do not publish the repository's raw Vite source files.
+The review workflow builds and tests without publishing. The separate Pages workflow tests, builds, and deploys on pushes to `main` after changes are reviewed and merged. GitHub Pages already uses GitHub Actions, and the original launch pull request was merged. For future changes, use a new branch and pull request; avoid publishing the repository's raw Vite source files.
 
 ## 7. Operating the service
 
