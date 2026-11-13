@@ -86,7 +86,13 @@ export async function notifyBooking({ env, fetchImpl, id, fields }) {
   }
 
   const emails = bookingEmails({ id, fields, startsAt, timezone, adminEmail });
-  const results = await Promise.allSettled(emails.map(async (email) => {
+  // Resend's unverified test sender is restricted to the account's verified address.
+  // Do not attempt customer delivery to other addresses in this testing mode.
+  const isTestSender = /(?:^|<)onboarding@resend\\.dev>?$/i.test(from.trim());
+  const deliverable = isTestSender
+    ? emails.filter((email) => email.to[0].toLowerCase() === adminEmail.toLowerCase())
+    : emails;
+  const results = await Promise.allSettled(deliverable.map(async (email) => {
     const result = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
