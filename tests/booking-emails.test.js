@@ -122,3 +122,22 @@ test("failed request does not send any email", async () => {
   assert.equal(response.status, 409);
   assert.equal(mailCount, 0);
 });
+
+test("Resend test sender only delivers to the verified account address", async () => {
+  const sent = [];
+  const result = await notifyBooking({
+    id, fields,
+    env: env({
+      RESEND_API_KEY: "fake-key",
+      BOOKING_EMAIL_FROM: "onboarding@resend.dev",
+      BOOKING_ADMIN_EMAIL: "admin@example.com",
+    }),
+    fetchImpl: async (url, init) => {
+      assert.equal(url, "https://api.resend.com/emails");
+      sent.push(JSON.parse(init.body));
+      return Response.json({ id: "mock-message" });
+    },
+  });
+  assert.deepEqual(result, { configured: true, sent: 1 });
+  assert.deepEqual(sent[0].to, ["admin@example.com"]);
+});
