@@ -96,12 +96,23 @@ export function createApi(url, key) {
           p_blocked: blocked,
         }),
       ),
-    review: async (id, status) =>
-      unwrap(
-        await client.rpc("admin_review_request", {
-          p_id: id,
-          p_status: status,
-        }),
-      ),
+    review: async (id, status) => {
+      // Cancellations retain their existing manual-contact workflow.
+      if (status === "cancelled")
+        return unwrap(await client.rpc("admin_review_request", {
+          p_id: id, p_status: status,
+        }));
+      const { data, error } = await client.functions.invoke("review-walk", {
+        body: { id, status },
+      });
+      if (error) {
+        let detail;
+        try { detail = await error.context?.json(); } catch { /* safe fallback */ }
+        throw new Error(detail?.error ||
+          "The request may have changed. Refresh the dashboard before trying again.");
+      }
+      if (!data?.updated) throw new Error("Review result uncertain. Refresh the dashboard.");
+      return data;
+    },
   };
 }
