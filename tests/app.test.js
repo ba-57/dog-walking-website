@@ -118,7 +118,7 @@ test("visitor selects a time, submits once and gets pending confirmation", async
   assert.equal(s.$("request-form").hidden, true);
   assert.match(
     s.$("request-message").textContent,
-    /received.*request-reference.*reviews it/,
+    /walk request has been received.*reviewed/,
   );
   assert.equal(s.$("request-form").elements.customer_name.value, "");
   s.close();
