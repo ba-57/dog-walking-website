@@ -88,7 +88,7 @@ export async function notifyBooking({ env, fetchImpl, id, fields }) {
   const emails = bookingEmails({ id, fields, startsAt, timezone, adminEmail });
   // Resend's unverified test sender is restricted to the account's verified address.
   // Do not attempt customer delivery to other addresses in this testing mode.
-  const isTestSender = /(?:^|<)onboarding@resend\\.dev>?$/i.test(from.trim());
+  const isTestSender = /(?:^|<)onboarding@resend\.dev>?$/i.test(from.trim());
   const deliverable = isTestSender
     ? emails.filter((email) => email.to[0].toLowerCase() === adminEmail.toLowerCase())
     : emails;
