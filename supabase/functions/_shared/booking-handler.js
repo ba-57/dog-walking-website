@@ -1,3 +1,4 @@
+import { notifyBooking } from "./booking-emails.js";
 // Dependency-free handler shared by the deployed Edge Function and local tests.
 export function createBookingHandler({ env, fetchImpl = fetch }) {
   return async function handle(request) {
@@ -126,6 +127,12 @@ export function createBookingHandler({ env, fetchImpl = fetch }) {
           error:
             "We couldn’t submit this request. Please check your details and refresh the available times.",
         });
+      }
+      // Email delivery is best-effort: never turn a saved request into a retryable error.
+      try {
+        await notifyBooking({ env, fetchImpl, id: result, fields });
+      } catch {
+        // Do not disclose private data or service errors to public clients.
       }
       return response(200, { id: result });
     } catch {
