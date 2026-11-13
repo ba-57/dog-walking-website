@@ -249,7 +249,7 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
       fields[`p_${key}`] = String(data.get(key) || "").trim();
     });
     try {
-      const id = await api.request(fields, captcha.getToken());
+      await api.request(fields, captcha.getToken());
       state.slot = null;
       state.day = null;
       $("request-form").reset();
@@ -257,7 +257,7 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
       await refreshCalendar({ quiet: true });
       message(
         "request-message",
-        `Thank you! Your request has been received. Reference: ${id}. Your time is held while our team reviews it. We’ll contact you to confirm before the walk.`,
+        "Thank you! Your walk request has been received. We’ll contact you once it’s reviewed. Your walk is not confirmed yet.",
         "success",
       );
       $("request-message").focus();
@@ -336,7 +336,6 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
         field("Email", r.email),
         field("Phone", r.phone),
         field("Neighborhood", r.neighborhood),
-        field("Reference", r.id),
       );
       card.append(top, meta);
       if (r.notes) card.append(el("p", r.notes, "request-notes"));
@@ -524,13 +523,17 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
     button.disabled = true;
     message("admin-message", "Saving…");
     try {
-      await action();
+      const result = await action();
       await loadAdmin();
-      message(
-        "admin-message",
-        "Saved. For appointment changes, contact the neighbor directly to confirm.",
-        "success",
-      );
+      const notification = result?.notification;
+      const feedback = notification === "sent"
+        ? "Saved. The customer notification was sent."
+        : notification === "test_mode"
+          ? "Saved. Customer email is disabled in Resend testing mode; contact the neighbor directly."
+          : notification === "failed"
+            ? "Saved, but the email could not be sent. Please contact the neighbor directly."
+            : "Saved. For appointment changes, contact the neighbor directly to confirm.";
+      message("admin-message", feedback, "success");
     } catch (error) {
       message("admin-message", readableError(error), "error");
     } finally {
