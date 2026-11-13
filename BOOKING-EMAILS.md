@@ -1,42 +1,45 @@
-# Automatic booking emails — approval checklist
+# Paws Next Door — automatic booking emails
 
-This feature is staged in a GitHub pull request. **Do not merge or deploy the Supabase function until approved.** The live site and backend retain their existing behavior.
+## Current status
 
-## What it sends
+- GitHub draft PR #2 contains the proposed frontend changes, customer request receipts, administrator new-booking alerts, and customer approval/decline emails.
+- The original request-walk function has already been deployed to Supabase with owner approval.
+- The new review-walk function and frontend changes are **not deployed or published**. Approval/decline messages are therefore **not live**.
+- Resend is configured with its test-only sender `onboarding@resend.dev`. Customer emails to addresses other than the account's verified recipient are intentionally disabled. A verified domain is necessary for general customer delivery.
+- No long UUID reference number is shown in booking receipt emails or in the draft website interface. IDs remain in the database.
 
-After a booking request is successfully saved by the existing CAPTCHA-verified \`request-walk\` Edge Function:
+## Workflow
 
-1. The customer receives a **request-received receipt**, including dog name, requested time, reference number, and a prominent warning that the walk **is not approved yet**.
-2. The service owner receives a **new request alert**, including the customer's contact information, dog name, neighborhood, requested time, and a link to the private dashboard.
+1. Customer requests a walk. Database saves a pending request and sends a receipt if the recipient is allowed by Resend. Administrator gets a new-request notification.
+2. Administrator opens the dashboard and clicks **Approve walk** or **Decline request**. The new authenticated `review-walk` function validates the signed-in session and runs the existing admin-only database status RPC.
+3. Only after a successful database state change, the function attempts to send the customer an approval or decline email.
+4. The dashboard explicitly reports whether email was sent, unavailable, or suppressed by Resend test mode. The administrator should contact the customer directly if delivery is unavailable.
+5. Cancellation retains the existing direct database update and manual customer contact; cancellation emails are not included in this change.
 
-Email messages deliberately exclude the free-form notes field to minimize disclosure of customer data. Emails are sent from the trusted server, never the public browser. No credentials are committed to GitHub.
+## Required secrets (Supabase Edge Functions)
 
-**Important:** These are receipt/alert messages, not an approval email. Approval, rejection, and cancellation still require the existing manual customer follow-up. Because sending is best-effort, a successfully saved request stays saved if email delivery fails; the dashboard remains the source of truth.
+- `RESEND_API_KEY`: private Resend API key
+- `BOOKING_EMAIL_FROM`: `onboarding@resend.dev` while testing; replace with a verified sender to email actual customers
+- `BOOKING_ADMIN_EMAIL`: email of the verified Resend account recipient
+- Preserve `TURNSTILE_SECRET_KEY`, `BOOKING_ALLOWED_ORIGINS`, `SUPABASE_URL`, and server-managed Supabase keys.
 
-## Owner setup required before enabling delivery
+No secret keys belong in GitHub, the Vite frontend, or screenshots.
 
-Recommended provider: [Resend](https://resend.com/). Create a Resend account, verify a domain you control under **Domains**, and create a restricted sending API key under **API Keys**. Resend may permit testing only with an approved recipient until domain verification is finished.
+## Release / validation checklist
 
-Under [Supabase → Edge Functions → Secrets](https://supabase.com/dashboard/project/sfwpwzzbqnfdqnaciffk/functions/secrets), configure:
+1. Review [GitHub pull request #2](https://github.com/ba-57/dog-walking-website/pull/2), check CI tests and builds, and confirm interface wording.
+2. Test customer receipt and administrator alert with a fictional booking at the *verified* account address; check Resend logs as well as the inbox.
+3. Ask the owner to approve deploying **new** Supabase `review-walk` Edge Function separately. Its deployment affects the live backend, but the existing published website will not call it until the PR is merged.
+4. Perform an authenticated end-to-end test for an approved and declined fictional booking. The service still must use test-recipient restrictions; arbitrary customer delivery is unavailable before domain verification.
+5. Obtain approval before merging PR #2 into `main`; this merges and deploys the changed GitHub Pages frontend.
+6. After email domain verification, repeat both status-email tests with a permitted real recipient before announcing production customer notification functionality.
 
-| Secret | Example / purpose |
-| --- | --- |
-| \`RESEND_API_KEY\` | Your private Resend sending API key. Never paste into GitHub or chat. |
-| \`BOOKING_EMAIL_FROM\` | \`Paws Next Door <walks@YOUR-VERIFIED-DOMAIN>\` |
-| \`BOOKING_ADMIN_EMAIL\` | The email address that should receive owner alerts. |
+## Security and reliability
 
-Retain existing \`TURNSTILE_SECRET_KEY\`, \`BOOKING_ALLOWED_ORIGINS\`, \`SUPABASE_URL\` and \`SUPABASE_SERVICE_ROLE_KEY\` settings.
+The new review endpoint requires an authenticated user JWT (Supabase gateway verification), confirms the token with Supabase Auth, and relies on the existing database RPC to verify `admin_users` membership. It does not expose the service-role key to browsers. The outgoing email body escapes untrusted customer text and omits free-form notes.
 
-## Tests and activation
+Emails are best-effort, not guaranteed. Failed email delivery does not roll back a successful status change. Use the dashboard as the source of truth, monitor Resend delivery logs, and contact the neighbor manually when delivery fails. An eventual outbox/retry feature would improve delivery guarantees. The server performs status updates before email sends, so rejected duplicate transitions do not trigger extra emails.
 
-1. In the GitHub pull request, check **Review checks**. These run \`npm test\` and the production build without publishing.
-2. Confirm the sender domain is verified at Resend and the three Supabase secrets are configured. Do not enter credentials into the website's \`VITE_*\` variables.
-3. Obtain owner approval to **deploy** the updated \`request-walk\` Edge Function (including its two shared JavaScript dependencies) to project \`sfwpwzzbqnfdqnaciffk\`. **Deploying a function changes the currently live backend immediately, even if the GitHub PR is not merged.** This is a separate approval step from merging the PR.
-4. After approval, use a controlled test appointment with fictional data and authorized test email inboxes to confirm **both** messages arrive and show the correct timezone. Inspect the request in the admin dashboard; decline/cancel the test afterward. Verify that a rejected/duplicate booking does not send an email.
-5. Once the owner approves publishing any accompanying website copy/documentation changes, merge the PR into \`main\`. This triggers the GitHub Pages deployment workflow.
+## Rollback
 
-**Rollback:** redeploy the previously deployed \`request-walk\` handler (from \`main\` prior to merging the PR), or disable sending by removing the mail secrets. Never remove the Turnstile or origin checks.
-
-## Limitations
-
-The email provider accepting a message is not proof of inbox delivery. Monitor Resend delivery/bounce logs. Sending after the save is best-effort rather than a durable queue, so transient provider errors may result in a saved booking without an email. Do not interpret such an email failure as permission to resubmit a booking. If guaranteed eventual delivery is needed, plan a database outbox with retry controls as a separate feature.
+Keep the live `request-walk` function as deployed until a separate approved update. To revert status emails, restore the prior frontend from GitHub and remove/disable the `review-walk` function; do not disable existing booking/CAPTCHA protections.
