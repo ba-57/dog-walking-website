@@ -1,6 +1,6 @@
 # Paws Next Door — setup and operations
 
-**Status: LIVE.** The redesigned Paws Next Door website is published at https://ba-57.github.io/dog-walking-website/ with its private admin interface at https://ba-57.github.io/dog-walking-website/#admin. The initial Supabase setup, Turnstile configuration, and launch checks have been completed. The sections below remain as reference material for recreating a test environment, maintaining the service, or onboarding another administrator. Do **not** rerun the database migration in the existing production project.
+**Status: LIVE.** The redesigned Paws Next Door website is published at https://ba-57.github.io/dog-walking-website/ with its private admin interface at https://ba-57.github.io/dog-walking-website/#admin. The initial Supabase setup, Turnstile configuration, and launch checks have been completed. **Custom-domain switch pending:** this branch prepares https://pawsnextdoor.org/ and https://pawsnextdoor.org/#admin. Follow [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md) when the switch is approved; no live settings have been changed by these repository edits. The sections below remain as reference material for recreating a test environment, maintaining the service, or onboarding another administrator. Do **not** rerun the database migration in the existing production project.
 
 ## 1. Create Supabase and apply the database migration
 
@@ -31,16 +31,16 @@ No example availability or real customer data is seeded by the migration. Admin 
 
    Only project owners/database administrators can grant membership. Creating an Auth user alone does not grant dashboard or customer-data access. Do not put admin roles in user-editable user metadata.
 
-4. Configure your Auth Site URL and allowed redirect URLs for your eventual HTTPS domain and localhost during development. Set SMTP and email templates if you will use Supabase invitations/password-reset emails. The website itself uses email/password login; account recovery is managed through Supabase, not a custom recovery screen.
+4. Configure your Auth Site URL and allowed redirect URLs for `https://pawsnextdoor.org/` and localhost during development, following the coordinated checklist in [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md). Set SMTP and email templates if you will use Supabase invitations/password-reset emails. The website itself uses email/password login; account recovery is managed through Supabase, not a custom recovery screen.
 5. Set an appropriate Auth session lifetime in Supabase. Sessions use tab-scoped `sessionStorage`. Sign out on shared devices. To revoke an administrator immediately, remove their row from `admin_users` and revoke their Supabase sessions.
 
 ## 3. Enable the secure request gateway
 
-1. In Cloudflare Turnstile, create a **managed** widget. Add your production hostname (for example `ba-57.github.io`) and `localhost` for development. Keep the site key and secret key separate.
+1. In Cloudflare Turnstile, create a **managed** widget. Add your production hostname (`pawsnextdoor.org`, plus `ba-57.github.io` during transition) and `localhost` for development. Keep the site key and secret key separate.
 2. In Supabase **Edge Functions → Secrets**, add `TURNSTILE_SECRET_KEY` with the widget's secret. Add `BOOKING_ALLOWED_ORIGINS` with the exact allowed website origins, separated by commas. For example:
 
    ```text
-   http://localhost:5173,https://ba-57.github.io
+   http://localhost:5173,https://ba-57.github.io,https://pawsnextdoor.org
    ```
 
    Origins include scheme, host and non-default port, with no path or trailing slash. Add your custom domain instead if applicable. Do not use `*`. These are example settings; choose your actual review and production origins. Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to its hosted Edge Functions automatically. The service-role key stays on the server; never add it to the website's Vite environment.
@@ -90,9 +90,9 @@ Automated `npm test` covers the application DOM and PostgreSQL policies/constrai
 
 ## 6. GitHub Pages hosting and updates
 
-Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the current production instructions. The production command is `npm run build:pages`; it uses `/dog-walking-website/`, requires all three public build variables, and verifies the `dist/` artifact. `npm run preview:pages` serves that build at `http://localhost:5173/dog-walking-website/`.
+Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the current production instructions. The production command is `npm run build:pages`; it uses `/` for `pawsnextdoor.org` and verifies `dist/CNAME`, requires all three public build variables, and verifies the `dist/` artifact. `npm run preview:pages` serves that build at `http://localhost:5173/`.
 
-The review workflow builds and tests without publishing. The separate Pages workflow tests, builds, and deploys on pushes to `main` after changes are reviewed and merged. GitHub Pages already uses GitHub Actions, and the original launch pull request was merged. For future changes, use a new branch and pull request; avoid publishing the repository's raw Vite source files.
+The review workflow builds and tests without publishing. The separate Pages workflow tests, builds, and deploys on pushes to `main` after changes are reviewed and merged. GitHub Pages already uses GitHub Actions, and the original launch pull request was merged. Do not merge this domain-change branch until the cutover in [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md) is coordinated. The new deployment guard will refuse to deploy until the Pages hostname is `pawsnextdoor.org`. For future changes, use a new branch and pull request; avoid publishing the repository's raw Vite source files.
 
 ## 7. Operating the service
 
