@@ -6,6 +6,8 @@ import { loadEnv } from "vite";
 import { JSDOM } from "jsdom";
 import {
   PAGES_BASE_PATH,
+  PAGES_CUSTOM_DOMAIN,
+  PAGES_ORIGIN,
   PUBLIC_BUILD_VARIABLES,
   validateProductionConfig,
 } from "./release-config.mjs";
@@ -50,6 +52,12 @@ export function verifyPagesBuild(root, env) {
     );
   const files = walk(dist);
   const failures = [];
+  const cname = join(dist, "CNAME");
+  if (
+    !existsSync(cname) ||
+    readFileSync(cname, "utf8").trim() !== PAGES_CUSTOM_DOMAIN
+  )
+    failures.push(`dist/CNAME must contain only ${PAGES_CUSTOM_DOMAIN}`);
   const bundleText = [];
   for (const file of files) {
     const name = relative(dist, file);
@@ -74,12 +82,12 @@ export function verifyPagesBuild(root, env) {
       failures.push(`Build did not embed ${name}`);
   }
   const dom = new JSDOM(readFileSync(join(dist, "index.html"), "utf8"), {
-    url: `https://ba-57.github.io${PAGES_BASE_PATH}`,
+    url: `${PAGES_ORIGIN}${PAGES_BASE_PATH}`,
   });
   for (const node of dom.window.document.querySelectorAll("[src],link[href]")) {
     const raw = node.getAttribute("src") || node.getAttribute("href");
-    const url = new URL(raw, `https://ba-57.github.io${PAGES_BASE_PATH}`);
-    if (url.origin !== "https://ba-57.github.io") continue;
+    const url = new URL(raw, `${PAGES_ORIGIN}${PAGES_BASE_PATH}`);
+    if (url.origin !== PAGES_ORIGIN) continue;
     if (!url.pathname.startsWith(PAGES_BASE_PATH)) {
       failures.push(`Asset outside Pages base path: ${url.pathname}`);
       continue;
@@ -139,7 +147,7 @@ export function verifyPagesBuild(root, env) {
       `Release checks failed:\n${[...new Set(failures)].join("\n")}`,
     );
   console.log(
-    `Pages checks passed: ${files.length} deployment files, correct base path, public configuration present, no private credentials detected.${tracked ? " Git environment-file check passed." : " No Git metadata: artifact check only."}`,
+    `Pages checks passed: ${files.length} deployment files, correct root base path and CNAME, public configuration present, no private credentials detected.${tracked ? " Git environment-file check passed." : " No Git metadata: artifact check only."}`,
   );
 }
 

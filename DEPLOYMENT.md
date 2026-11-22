@@ -1,95 +1,36 @@
-# Paws Next Door — GitHub Pages deployment and updates
+# Paws Next Door — deployment and the custom-domain transition
 
-The frontend is prepared for **https://ba-57.github.io/dog-walking-website/**. Administrator login is **https://ba-57.github.io/dog-walking-website/#admin**. The project path ends with `/`; `#admin` is an in-page route, so no additional HTML page or server rewrite is required.
+**This branch prepares https://pawsnextdoor.org/ and https://pawsnextdoor.org/#admin. The domain has not been switched.** The working site remains at https://ba-57.github.io/dog-walking-website/ until the owner approves and coordinates the change.
 
-**Launch status: LIVE.** The redesigned frontend was merged from `feat/community-booking` through pull request #1 and deployed from `main`. The public website and admin login were verified after launch, including a successful test booking. This document now serves as the production configuration reference and the guide for future updates. The Supabase backend is hosted separately from GitHub Pages.
+Follow **[CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md)** for the concise settings checklist, WordPress.com DNS records, switch order, and post-switch tests. Do not merge this root-path build or change Pages/DNS independently of that plan.
 
-## What the workflows do
+## Production build and workflows
 
-- **Review checks** runs on pull requests into `main` (and on the original feature branch, where configured). It tests the app and builds/verifies the Pages artifact using repository variables. It has no deployment permissions and cannot publish.
-- **Deploy Paws Next Door to GitHub Pages** runs on pushes to `main`, including an approved pull request merge. A manual run is also available on `main`. Both jobs explicitly reject other branches and other repositories. It tests, builds, checks the artifact, uploads only `dist/`, and deploys through the official Pages action.
-- Only the deployment job receives `pages: write` and `id-token: write`. Other jobs use read-only repository access. Actions are pinned to verified release commit hashes.
-- Production builds stop if public configuration is missing or contains a placeholder, private/legacy key, or test CAPTCHA site key. `npm run build:pages` always uses `/dog-walking-website/`, even if `.env.local` uses `/` for local development.
-- The build checks generated asset paths/files, confirms the three public configuration values were embedded, rejects environment files and server-only configuration in the output, and scans Git source and output for recognizable private credentials. This scan complements code review; it cannot prove the absence of every arbitrary password string.
-- `.env.local` remains ignored. Neither workflow uploads repository source, local environment files, Supabase function source, or database records as the deployed website.
+- `npm run build:pages` always builds at `/` for `pawsnextdoor.org`. It overrides an old `VITE_BASE_PATH=/dog-walking-website/` in a local environment without editing that file.
+- `public/CNAME` is copied to `dist/CNAME`. The release checker requires the exact hostname `pawsnextdoor.org`, verifies assets resolve under the new origin, and scans source/output for recognizable private credentials. `.env.local` stays ignored and server-only files stay out of the artifact.
+- **Review checks** runs on PRs into `main` and `feat/**` branch pushes. It tests and builds the real production artifact using existing repository variables. It cannot publish or change Pages settings.
+- **Deploy Paws Next Door to GitHub Pages** still runs only on `main` pushes or a manual run from `main`. Before upload/deployment, it reads existing Pages metadata and refuses to publish unless the configured host is `pawsnextdoor.org`. The workflow does not set that hostname or change DNS itself.
+- Only the deploy job has Pages write and OIDC permissions. Actions remain pinned to release commit hashes, and only `dist/` is uploaded.
 
-## 1. Configure GitHub's three public repository variables
+For an Actions-based Pages site, GitHub ignores `CNAME` files as domain configuration. This file keeps the intended domain explicit in source and output, but **Repository Settings → Pages → Custom domain** is still required during the approved switch. Keep Source set to **GitHub Actions**.
 
-These are intentionally public browser settings. They belong under **Variables**, not a committed environment file. There are no frontend service-role or Turnstile secret credentials.
+## Existing public build variables — keep their values
 
-1. Open **https://github.com/ba-57/dog-walking-website/settings/variables/actions**.
-2. Under **Repository variables**, click **New repository variable** for each name below. If a variable already exists, edit it instead.
-3. Copy each value from your working local `.env.local`. Copy only the part after `=`; do not include quotes, surrounding spaces or a newline.
+The custom domain changes the frontend address, not the backend project or widget:
 
-| Variable name                   | Value                                                   |
-| ------------------------------- | ------------------------------------------------------- |
-| `VITE_SUPABASE_URL`             | `https://sfwpwzzbqnfdqnaciffk.supabase.co`              |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | The working public key beginning with `sb_publishable_` |
-| `VITE_TURNSTILE_SITE_KEY`       | The working public Turnstile Site Key                   |
+| GitHub Actions repository variable | Value to keep                              |
+| ---------------------------------- | ------------------------------------------ |
+| `VITE_SUPABASE_URL`                | `https://sfwpwzzbqnfdqnaciffk.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`    | The existing public `sb_publishable_…` key |
+| `VITE_TURNSTILE_SITE_KEY`          | The existing public Turnstile Site Key     |
 
-The workflow sets the base path itself. You do not need a fourth repository variable. Changing a variable requires another build; it does not update an already-published bundle automatically.
+These are already configured under **Repository Settings → Secrets and variables → Actions → Variables**. Do not replace the Supabase Project URL with the website URL. No new build variable or secret is required for the domain. Missing/example values stop a production build. A changed build value requires a rebuild.
 
-**Current status:** All three public repository variables were saved for launch and the production checks passed. If a value needs to change later, edit the variable in GitHub and trigger a new approved deployment. Never place server-side secrets in GitHub repository variables used by Vite.
+Never put the Turnstile Secret Key, Supabase service-role key, passwords, or access tokens in Vite variables. Do not commit `.env.local` or upload it as part of `dist/`. Credential-pattern scanning is a useful check, not a proof that every arbitrary password string would be detected.
 
-## 2. Check Supabase Auth
+## Production preview on your Mac
 
-Open **https://supabase.com/dashboard/project/sfwpwzzbqnfdqnaciffk/auth/url-configuration**.
-
-1. Set **Site URL** to:
-
-   ```text
-   https://ba-57.github.io/dog-walking-website/
-   ```
-
-2. In **Redirect URLs**, retain your local development entry and add the exact production URL. The entries should include:
-
-   ```text
-   http://localhost:5173/
-   https://ba-57.github.io/dog-walking-website/
-   ```
-
-3. Save the changes. Avoid broad wildcard entries for production.
-4. Open **Authentication → Sign In / Providers** (or Authentication settings, depending on the dashboard layout). Email/password sign-in must remain enabled. Turn **Allow new users to sign up** off because this dashboard uses administrator accounts created by the owner. Existing accounts can still sign in.
-
-**Launch verification:** The owner confirmed the production Site URL and the two redirect URLs above, and disabled public user signup while retaining email/password login. Recheck these settings if the domain or authentication flow changes. Admin membership checks and RLS restrict appointment records to authorized administrators.
-
-The current login uses `signInWithPassword`, which returns a session directly and does not navigate through an OAuth redirect. Changing the base path does not change that flow. Site URL and Redirect URLs set the intended destinations for Auth emails/future flows; they do not add password-reset or invitation handling to the app. Recovery remains managed through trusted Supabase administration.
-
-Supabase's security advisor also reported leaked-password protection disabled. If your plan supports it, enable it under Auth password security. The app's owner-only admin membership table intentionally has no public RLS policy; its public calendar RPC deliberately returns only safe availability data. Admin RPCs check membership inside each function.
-
-## 3. Check the booking origin and Turnstile hostname
-
-The origin and the hostname are different settings:
-
-| Setting                                  | Production value                               |
-| ---------------------------------------- | ---------------------------------------------- |
-| Supabase `BOOKING_ALLOWED_ORIGINS` entry | `https://ba-57.github.io`                      |
-| Cloudflare Turnstile allowed hostname    | `ba-57.github.io`                              |
-| Website's full URL                       | `https://ba-57.github.io/dog-walking-website/` |
-
-**Supabase:** At preparation time, a real CORS preflight from `https://ba-57.github.io` succeeded. A booking without a CAPTCHA was rejected. The public calendar responded in `America/Chicago`, and anonymous access to appointment records and direct booking RPC submission was denied. No appointments were written by these checks.
-
-If you need to edit the origin list, open **Supabase → Edge Functions → Secrets**, edit `BOOKING_ALLOWED_ORIGINS`, and ensure it includes:
-
-```text
-http://localhost:5173,https://ba-57.github.io
-```
-
-Keep any other explicitly trusted origins you still need. Do not put `/dog-walking-website/` in this setting. Do not change `TURNSTILE_SECRET_KEY`; it stays server-side.
-
-**Cloudflare:** The owner confirmed `ba-57.github.io` and `localhost` were listed as allowed hostnames before launch. Recheck them when changing domains or Turnstile widgets:
-
-1. Open Cloudflare → **Turnstile**.
-2. Select the Paws Next Door widget matching your public Site Key.
-3. Open **Settings → Hostname Management** (sometimes labeled Hostnames).
-4. Ensure `ba-57.github.io` is listed. Keep `localhost` for local testing.
-5. Save if you changed anything. Do not include a scheme, path or port in the hostname list.
-
-The frontend requests Turnstile action `walk_request`. The Edge Function checks that action, successful verification, and the token hostname against the allowed request origin. The owner confirmed that an appointment request passed Turnstile on the live site after deployment.
-
-## 4. Review the production build before approving
-
-In your local project folder, with your working `.env.local`:
+With the existing working public values in `.env.local`, run:
 
 ```sh
 npm ci
@@ -98,28 +39,26 @@ npm run build:pages
 npm run preview:pages
 ```
 
-Keep the preview terminal open and visit:
+Open **http://localhost:5173/** and **http://localhost:5173/#admin**. Keep the terminal open; stop another server on port 5173 first. The preview refuses to change ports so the existing localhost CORS and Turnstile settings remain valid. Press Control–C to stop it.
 
-```text
-http://localhost:5173/dog-walking-website/
-```
+This tests the new root-path build without changing DNS or publishing. The real database is used unless `?preview=1` is added; use fictional requests and cancel/decline them afterward. A successful localhost test does not verify the new domain's DNS, certificate, allowlists, or a real CAPTCHA on that hostname.
 
-Use **http://localhost:5173/dog-walking-website/#admin** for login. Do not add `?preview=1` when testing the actual database. Stop another server on port 5173 before running this preview; the command deliberately refuses to switch ports so that CORS and Turnstile settings stay consistent. Press Control–C to stop the preview.
+## Settings to update later, after approval
 
-`npm run build:pages` does not edit `.env.local`. The local dev server still uses `/`. `npm run preview:pages` serves the production build at the actual project path, using localhost as the browser origin.
+- **GitHub Pages:** custom domain `pawsnextdoor.org`; Enforce HTTPS when the certificate is ready.
+- **WordPress.com:** the apex GitHub Pages A records in [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md); optional `www` CNAME to `ba-57.github.io`. Preserve unrelated email records and nameservers.
+- **Supabase Auth:** Site URL `https://pawsnextdoor.org/`, with that exact Redirect URL added. Keep `http://localhost:5173/` and the old GitHub URL during transition. Existing verified admin accounts and admin membership remain unchanged; keep public signup disabled.
+- **Supabase Edge Function Secrets:** add origin `https://pawsnextdoor.org` to `BOOKING_ALLOWED_ORIGINS` without a path or trailing slash; keep old trusted origins until the switch is stable.
+- **Cloudflare Turnstile:** add hostname `pawsnextdoor.org` to the existing widget, preserving old/development hostnames. Keep the existing public and private key pair.
 
-The owner completed end-to-end local checks (login, availability, CAPTCHA, submission, approve/decline) and confirmed the live site's design, access and booking flow after publication. Automated checks cover compilation, asset paths, public configuration, constraints, permissions and safe failure paths; a green build is not a substitute for a live browser test after future changes.
+Email/password login uses `signInWithPassword` directly and does not require an OAuth redirect. The Auth URL settings establish the intended new website destination; they do not add password-reset or invitation handling to the app. Browser sessions are tied to the old origin, so sign in again on the new domain. This is not account or database loss.
 
-## 5. Publish future website updates
+## Approval, deployment and ongoing updates
 
-**Initial launch completed.** GitHub Pages is configured to use GitHub Actions and pull request #1 has already been merged. For future changes, develop on a separate branch, verify the checks, then merge into `main` when you want the public website updated.
+After approving the domain switch, follow the coordinated order in [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md): service allowlists, GitHub ownership/domain configuration, WordPress DNS, merge/deploy in the planned window, certificate/HTTPS, and live smoke tests. GitHub recommends configuring the custom domain before pointing DNS at it. Domain verification itself requires a TXT DNS record and has not been performed by this PR.
 
-1. Create a new branch for the change and open a pull request into `main`. Review **Files changed**, and confirm the **Review checks** passed.
-2. Merge the reviewed pull request when you want to publish. The GitHub Pages workflow runs automatically on the new `main` commit; no need to repeat the original launch setup.
-3. Check **Actions → Deploy Paws Next Door to GitHub Pages** and confirm the build and deploy jobs succeeded.
-4. Open **https://ba-57.github.io/dog-walking-website/** and hard-refresh Safari with Command–Option–R if needed. The admin URL ends in `/#admin`.
-5. Smoke-test affected functionality. For changes to booking or authentication, submit a fictional request on the live site, verify its pending status in the admin dashboard, and decline/cancel it after testing. Check the phone layout too. Appointments and admin sessions use Supabase, not GitHub Pages. Automatic customer emails/texts have not yet been implemented.
+Merging to `main` starts the existing deployment workflow. If the domain setting is still the old GitHub hostname, the new guard stops deployment before the root artifact is uploaded/published. Do not bypass the guard. Changing the Pages domain setting itself may redirect the current GitHub URL, so coordinate it with the root build and DNS changes rather than doing it early.
 
-The manual workflow button must also be run from `main`; runs from the feature branch are skipped. After the initial release, approved pushes to `main` automatically rebuild and redeploy. Do not push unreviewed changes to `main`.
+After the switch, approved changes to `main` automatically test, build and deploy as before. If a workflow fails, inspect the failed step; do not revert to publishing raw Vite source. Missing variables are fixed in repository variables, domain-guard failures in Pages settings, and CAPTCHA/CORS failures in the respective hostname/origin allowlists.
 
-If the workflow fails, the previous deployed site stays in place. Inspect the failed step rather than changing to raw-source branch publishing. A missing variable is fixed in Repository variables; a permissions/source error is checked in Pages settings; a CAPTCHA hostname error is fixed in Cloudflare.
+Existing appointment records, availability, RLS policies, time zone, admin accounts, and Edge Function code are preserved. This PR does not apply a database migration, rotate keys, or change live external settings. Automatic customer email/text notifications remain outside the current implementation.

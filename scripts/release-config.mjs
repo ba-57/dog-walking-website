@@ -1,6 +1,8 @@
 import { validatePublicConfig } from "../src/config.js";
 
-export const PAGES_BASE_PATH = "/dog-walking-website/";
+export const PAGES_BASE_PATH = "/";
+export const PAGES_CUSTOM_DOMAIN = "pawsnextdoor.org";
+export const PAGES_ORIGIN = `https://${PAGES_CUSTOM_DOMAIN}`;
 export const PUBLIC_BUILD_VARIABLES = [
   "VITE_SUPABASE_URL",
   "VITE_SUPABASE_PUBLISHABLE_KEY",
