@@ -73,11 +73,19 @@ export function createApi(url, key) {
             .order("id"),
         ),
         allRows(() => client.from("blocked_dates").select("day").order("day")),
+        allRows(() =>
+          client
+            .from("booking_email_outbox")
+            .select("appointment_id,event,status,attempts,updated_at")
+            .order("appointment_id")
+            .order("event"),
+        ),
       ]);
       return {
         requests: responses[0],
         slots: responses[1],
         blocks: responses[2],
+        emails: responses[3],
       };
     },
     addSlot: async (day, time) =>
@@ -96,22 +104,42 @@ export function createApi(url, key) {
           p_blocked: blocked,
         }),
       ),
+    retryEmails: async (id) => {
+      const { data, error } = await client.functions.invoke("review-walk", {
+        body: { id, action: "retry_notifications" },
+      });
+      if (error)
+        throw new Error(
+          "Email retry could not be completed. Refresh the dashboard before trying again.",
+        );
+      return data;
+    },
     review: async (id, status) => {
       // Cancellations retain their existing manual-contact workflow.
       if (status === "cancelled")
-        return unwrap(await client.rpc("admin_review_request", {
-          p_id: id, p_status: status,
-        }));
+        return unwrap(
+          await client.rpc("admin_review_request", {
+            p_id: id,
+            p_status: status,
+          }),
+        );
       const { data, error } = await client.functions.invoke("review-walk", {
         body: { id, status },
       });
       if (error) {
         let detail;
-        try { detail = await error.context?.json(); } catch { /* safe fallback */ }
-        throw new Error(detail?.error ||
-          "The request may have changed. Refresh the dashboard before trying again.");
+        try {
+          detail = await error.context?.json();
+        } catch {
+          /* safe fallback */
+        }
+        throw new Error(
+          detail?.error ||
+            "The request may have changed. Refresh the dashboard before trying again.",
+        );
       }
-      if (!data?.updated) throw new Error("Review result uncertain. Refresh the dashboard.");
+      if (!data?.updated)
+        throw new Error("Review result uncertain. Refresh the dashboard.");
       return data;
     },
   };

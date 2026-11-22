@@ -1,107 +1,155 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createReviewHandler } from "../supabase/functions/_shared/review-handler.js";
-import { reviewEmail } from "../supabase/functions/_shared/booking-emails.js";
-
 const id = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
 const values = {
-  BOOKING_ALLOWED_ORIGINS: "https://ba-57.github.io",
+  BOOKING_ALLOWED_ORIGINS: "https://pawsnextdoor.org",
   SUPABASE_URL: "https://example.supabase.co",
-  SUPABASE_SERVICE_ROLE_KEY: "fake-service-key",
-  RESEND_API_KEY: "fake-resend-key",
-  BOOKING_EMAIL_FROM: "onboarding@resend.dev",
-  BOOKING_ADMIN_EMAIL: "owner@example.com",
+  SUPABASE_SERVICE_ROLE_KEY: "fake-service",
+  RESEND_API_KEY: "fake-resend",
+  BOOKING_EMAIL_FROM: "walks@pawsnextdoor.org",
+  BOOKING_ADMIN_EMAIL: "team@example.test",
+  BOOKING_EMAIL_MODE: "production",
 };
 const env = { get: (key) => values[key] };
-function request(status = "approved", token = "valid-user-token") {
-  return new Request("https://example.supabase.co/functions/v1/review-walk", {
+const req = (
+  body = { id, status: "approved" },
+  authorization = "Bearer user-token",
+  origin = "https://pawsnextdoor.org",
+) =>
+  new Request("https://example.supabase.co/functions/v1/review-walk", {
     method: "POST",
-    headers: {
-      Origin: "https://ba-57.github.io",
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id, status }),
+    headers: { Origin: origin, Authorization: authorization },
+    body: typeof body === "string" ? body : JSON.stringify(body),
   });
-}
-test("approve and decline email templates omit internal IDs and escape untrusted customer text", () => {
-  for (const status of ["approved", "declined"]) {
-    const email = reviewEmail({
-      appointment: { customer_name: "<Alex>", dog_name: "Buddy", email: "customer@example.com" },
-      status, startsAt: "2026-11-18T16:00:00Z", timezone: "America/Chicago",
-    });
-    assert.deepEqual(email.to, ["customer@example.com"]);
-    assert.match(email.html, /&lt;Alex&gt;/);
-    assert.doesNotMatch(JSON.stringify(email), /aaaaaaaa-aaaa/);
-    assert.match(email.text, /Wednesday, November 18/);
-    assert.match(email.text, status === "approved" ? /approved/ : /can't accommodate/);
-  }
+test("review rejects origins, malformed bodies, missing authorization and invalid statuses before any private operation", async () => {
+  let calls = 0;
+  const handler = createReviewHandler({
+    env,
+    fetchImpl: async () => {
+      calls++;
+      throw Error("Unexpected call");
+    },
+  });
+  assert.equal((await handler(req({}, "", undefined))).status, 401);
+  assert.equal(
+    (await handler(req({}, "Bearer x", "https://unapproved.example"))).status,
+    403,
+  );
+  for (const body of [
+    "bad-json",
+    null,
+    { id, status: "cancelled" },
+    { id: "bad", status: "approved" },
+  ])
+    assert.equal((await handler(req(body))).status, 400);
+  assert.equal(calls, 0);
 });
-test("admin route requires valid authorization before mutating", async () => {
-  let mutations = 0;
+test("invalid sessions and authenticated non-admins cannot mutate, read the queue, retry or send", async () => {
+  for (const retry of [false, true])
+    for (const validSession of [false, true]) {
+      const calls = [];
+      const handler = createReviewHandler({
+        env,
+        fetchImpl: async (url) => {
+          calls.push(url);
+          if (url.endsWith("/auth/v1/user"))
+            return Response.json(validSession ? { id: "signed-in-user" } : {}, {
+              status: validSession ? 200 : 401,
+            });
+          if (url.endsWith("/is_admin")) return Response.json(false);
+          throw Error("Private operation forbidden");
+        },
+      });
+      assert.equal(
+        (
+          await handler(
+            req(
+              retry
+                ? { id, action: "retry_notifications" }
+                : { id, status: "approved" },
+            ),
+          )
+        ).status,
+        validSession ? 403 : 401,
+      );
+      assert.ok(
+        !calls.some((url) => /claim_booking|admin_review|api.resend/.test(url)),
+      );
+    }
+});
+test("approval and decline commit through the user-authorized wrapper before delivery; rejected transitions do not send", async () => {
+  for (const status of ["approved", "declined"])
+    for (const success of [false, true]) {
+      const calls = [];
+      const handler = createReviewHandler({
+        env,
+        fetchImpl: async (url, init) => {
+          calls.push(url);
+          if (url.endsWith("/auth/v1/user"))
+            return Response.json({ id: "admin" });
+          if (url.endsWith("/is_admin")) return Response.json(true);
+          if (url.endsWith("/admin_review_with_email")) {
+            assert.equal(init.headers.Authorization, "Bearer user-token");
+            assert.equal(JSON.parse(init.body).p_status, status);
+            return success
+              ? new Response(null, { status: 204 })
+              : Response.json({}, { status: 409 });
+          }
+          if (url.endsWith("/claim_booking_emails")) return Response.json([]);
+          throw Error("Unexpected call");
+        },
+      });
+      const res = await handler(req({ id, status }));
+      assert.equal(res.status, success ? 200 : 409);
+      assert.equal(
+        calls.some((url) => url.endsWith("/claim_booking_emails")),
+        success,
+      );
+      if (success)
+        assert.deepEqual(await res.json(), {
+          updated: true,
+          notification: "pending",
+        });
+    }
+});
+test("mail errors after an authorized status change return success plus attention, so an admin does not repeat the transition", async () => {
   const handler = createReviewHandler({
     env,
     fetchImpl: async (url) => {
-      if (url.endsWith("/auth/v1/user")) return Response.json({ message: "unauthorized" }, { status: 401 });
-      if (url.includes("/rpc/")) mutations++;
-      return Response.json({});
+      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "admin" });
+      if (url.endsWith("/is_admin")) return Response.json(true);
+      if (url.endsWith("/admin_review_with_email"))
+        return new Response(null, { status: 204 });
+      if (url.endsWith("/claim_booking_emails"))
+        throw Error("Private failure details");
+      throw Error("Unexpected call");
     },
   });
-  const response = await handler(request());
-  assert.equal(response.status, 401);
-  assert.equal(mutations, 0);
+  const res = await handler(req());
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {
+    updated: true,
+    notification: "attention",
+  });
 });
-test("unauthorized database membership cannot update or notify", async () => {
-  let emailCalls = 0;
+test("authorized email retry does not repeat a database status change", async () => {
+  const calls = [];
   const handler = createReviewHandler({
     env,
     fetchImpl: async (url) => {
-      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "signed-in-user" });
-      if (url.includes("/rpc/admin_review_request"))
-        return Response.json({ code: "42501", message: "Administrator access required." }, { status: 403 });
-      if (url.includes("api.resend.com")) emailCalls++;
-      return Response.json({});
+      calls.push(url);
+      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "admin" });
+      if (url.endsWith("/is_admin")) return Response.json(true);
+      if (url.endsWith("/claim_booking_emails")) return Response.json([]);
+      throw Error("No status transition expected");
     },
   });
-  const response = await handler(request());
-  assert.equal(response.status, 403);
-  assert.equal(emailCalls, 0);
-});
-test("successful admin review in sandbox does not email unrelated customers", async () => {
-  let rpcCalls = 0;
-  let emailCalls = 0;
-  const handler = createReviewHandler({
-    env,
-    fetchImpl: async (url) => {
-      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "signed-in-admin" });
-      if (url.includes("/rpc/admin_review_request")) { rpcCalls++; return new Response(null, { status: 204 }); }
-      if (url.includes("/rest/v1/appointments"))
-        return Response.json([{ email: "neighbor@example.com", customer_name: "Neighbor", dog_name: "Buddy", slot_id: id }]);
-      if (url.includes("/rest/v1/walk_slots")) return Response.json([{ starts_at: "2026-11-18T16:00:00Z" }]);
-      if (url.includes("/rest/v1/service_settings")) return Response.json([{ timezone: "America/Chicago" }]);
-      if (url.includes("api.resend.com")) emailCalls++;
-      throw Error("Unexpected call: " + url);
-    },
+  const res = await handler(req({ id, action: "retry_notifications" }));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {
+    updated: false,
+    notification: "pending",
   });
-  const response = await handler(request("declined"));
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { updated: true, notification: "test_mode" });
-  assert.equal(rpcCalls, 1);
-  assert.equal(emailCalls, 0);
-});
-test("a rejected state transition does not send an email", async () => {
-  let emailCalls = 0;
-  const handler = createReviewHandler({
-    env,
-    fetchImpl: async (url) => {
-      if (url.endsWith("/auth/v1/user")) return Response.json({ id: "signed-in-admin" });
-      if (url.includes("/rpc/admin_review_request"))
-        return Response.json({ code: "P0001", message: "Conflict" }, { status: 409 });
-      if (url.includes("api.resend.com")) emailCalls++;
-      throw Error("Unexpected call: " + url);
-    },
-  });
-  const response = await handler(request());
-  assert.equal(response.status, 409);
-  assert.equal(emailCalls, 0);
+  assert.ok(!calls.some((url) => url.includes("admin_review")));
 });

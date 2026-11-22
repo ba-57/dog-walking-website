@@ -1,8 +1,8 @@
 # Paws Next Door — deployment and the custom-domain transition
 
-**This branch prepares https://pawsnextdoor.org/ and https://pawsnextdoor.org/#admin. The domain has not been switched.** The working site remains at https://ba-57.github.io/dog-walking-website/ until the owner approves and coordinates the change.
+**The custom domain is live at https://pawsnextdoor.org/ and https://pawsnextdoor.org/#admin.** The root-path production build, CNAME and Pages hostname guard are preserved on this email branch.
 
-Follow **[CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md)** for the concise settings checklist, WordPress.com DNS records, switch order, and post-switch tests. Do not merge this root-path build or change Pages/DNS independently of that plan.
+See [BOOKING-EMAILS.md](BOOKING-EMAILS.md) for the separately approved mail-queue migration, Edge Function updates, Resend verification and controlled tests required before merging the email frontend. The backend must be ready before that merge. [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md) remains the domain configuration reference; do not redo the DNS switch for email setup.
 
 ## Production build and workflows
 
@@ -61,4 +61,4 @@ Merging to `main` starts the existing deployment workflow. If the domain setting
 
 After the switch, approved changes to `main` automatically test, build and deploy as before. If a workflow fails, inspect the failed step; do not revert to publishing raw Vite source. Missing variables are fixed in repository variables, domain-guard failures in Pages settings, and CAPTCHA/CORS failures in the respective hostname/origin allowlists.
 
-Existing appointment records, availability, RLS policies, time zone, admin accounts, and Edge Function code are preserved. This PR does not apply a database migration, rotate keys, or change live external settings. Automatic customer email/text notifications remain outside the current implementation.
+Existing appointment records, availability, RLS policies, time zone, admin accounts, and Edge Function code are preserved. This preparation does not apply migrations, deploy functions, rotate keys, or change live external settings. The draft email extension has a new un-applied queue migration and review endpoint; follow BOOKING-EMAILS.md before release. Cancellation emails and customer SMS remain outside scope.

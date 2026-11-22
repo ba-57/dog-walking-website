@@ -109,16 +109,19 @@ export function createBookingHandler({ env, fetchImpl = fetch }) {
           error:
             "The security check expired or failed. Please complete it again.",
         });
-      const saved = await fetchImpl(`${url}/rest/v1/rpc/request_walk`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: key,
-          Authorization: `Bearer ${key}`,
+      const saved = await fetchImpl(
+        `${url}/rest/v1/rpc/request_walk_with_email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify(fields),
+          signal: AbortSignal.timeout(10000),
         },
-        body: JSON.stringify(fields),
-        signal: AbortSignal.timeout(10000),
-      });
+      );
       const result = await saved.json();
       if (!saved.ok) {
         if (result.code === "P0001")
@@ -130,7 +133,12 @@ export function createBookingHandler({ env, fetchImpl = fetch }) {
       }
       // Email delivery is best-effort: never turn a saved request into a retryable error.
       try {
-        await notifyBooking({ env, fetchImpl, id: result, fields });
+        const delivery = notifyBooking({ env, fetchImpl, id: result }).catch(
+          () => {},
+        );
+        if (typeof globalThis.EdgeRuntime?.waitUntil === "function")
+          globalThis.EdgeRuntime.waitUntil(delivery);
+        else await delivery;
       } catch {
         // Do not disclose private data or service errors to public clients.
       }

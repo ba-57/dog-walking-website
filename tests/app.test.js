@@ -121,6 +121,10 @@ test("visitor selects a time, submits once and gets pending confirmation", async
     /walk request has been received.*reviewed/,
   );
   assert.equal(s.$("request-form").elements.customer_name.value, "");
+  assert.doesNotMatch(
+    s.$("request-message").textContent,
+    /request-reference|Reference:/,
+  );
   s.close();
 });
 test("conflict refreshes available times and retains entered contact details", async () => {
@@ -309,5 +313,43 @@ test("explicit design preview has fictional data and rejects all writes", async 
       (b) => b.disabled,
     ),
   );
+  s.close();
+});
+
+test("admin sees friendly delivery statuses, no UUID references, and can retry without re-reviewing", async () => {
+  const id = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+  let retried = false;
+  const s = setup(
+    {
+      session: async () => ({ user: {} }),
+      adminData: async () => ({
+        requests: [{ ...sampleRequest, id }],
+        slots: [slot],
+        blocks: [],
+        emails: [{ appointment_id: id, event: "approved", status: "failed" }],
+      }),
+      retryEmails: async (value) => {
+        assert.equal(value, id);
+        retried = true;
+        return { updated: false, notification: "attention" };
+      },
+    },
+    "#admin",
+  );
+  await s.app.ready;
+  assert.doesNotMatch(
+    s.$("request-list").textContent,
+    /aaaaaaaa-aaaa|Reference/,
+  );
+  assert.match(
+    s.$("request-list").textContent,
+    /Approval email: Needs attention/,
+  );
+  [...s.$("request-list").querySelectorAll("button")]
+    .find((button) => button.textContent === "Retry emails")
+    .click();
+  await tick();
+  assert.equal(retried, true);
+  assert.match(s.$("admin-message").textContent, /retry checked/);
   s.close();
 });

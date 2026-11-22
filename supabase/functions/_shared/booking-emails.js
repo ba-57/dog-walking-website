@@ -1,32 +1,43 @@
-// Server-only transactional booking emails. No browser credential or customer data is logged.
-const emailSafe = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-})[char]);
-
+// Server-only templates and delivery. Never import this module into frontend code.
+const WEBSITE = "https://pawsnextdoor.org/";
+const escapeHtml = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
+const html = (text) =>
+  '<div style="font:16px/1.6 Arial,sans-serif;white-space:pre-line">' +
+  escapeHtml(text) +
+  "</div>";
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function formattedWalk(startsAt, timezone) {
-  if (!startsAt) return "The walking time shown in your request";
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone || "America/Chicago",
-      weekday: "long", month: "long", day: "numeric", year: "numeric",
-      hour: "numeric", minute: "2-digit", timeZoneName: "short",
-    }).format(new Date(startsAt));
-  } catch {
-    return "The walking time shown in your request";
-  }
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone || "America/Chicago",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(startsAt));
 }
-
-export function bookingEmails({ id, fields, startsAt, timezone, adminEmail }) {
+export function bookingEmails({ fields, startsAt, timezone, adminEmail }) {
   const date = formattedWalk(startsAt, timezone);
   const customer = [
-    "Hi " + fields.p_customer_name + ",",
+    `Hi ${fields.p_customer_name},`,
     "",
     "We received your Paws Next Door dog-walking request.",
-    "Dog: " + fields.p_dog_name,
-    "Requested walk: " + date,
+    `Dog: ${fields.p_dog_name}`,
+    `Requested walk: ${date}`,
     "",
-    "Your requested time is being held while our team reviews it. This is NOT a confirmed walk yet.",
-    "We will contact you separately after reviewing the request. Please wait for approval before making arrangements.",
+    "Your time is held while our team reviews it. This is NOT a confirmed walk yet.",
+    "We’ll email you after reviewing your request. Please wait for approval before making arrangements.",
+    "",
+    WEBSITE,
     "",
     "Thank you,",
     "Paws Next Door",
@@ -34,124 +45,212 @@ export function bookingEmails({ id, fields, startsAt, timezone, adminEmail }) {
   const admin = [
     "A new Paws Next Door walk request needs review.",
     "",
-    "Name: " + fields.p_customer_name,
-    "Email: " + fields.p_email,
-    "Phone: " + fields.p_phone,
-    "Dog: " + fields.p_dog_name,
-    "Neighborhood: " + fields.p_neighborhood,
-    "Requested walk: " + date,
+    `Name: ${fields.p_customer_name}`,
+    `Email: ${fields.p_email}`,
+    `Phone: ${fields.p_phone}`,
+    `Dog: ${fields.p_dog_name}`,
+    `Neighborhood: ${fields.p_neighborhood}`,
+    `Requested walk: ${date}`,
     "",
-    "Review the pending request at:",
-    "https://ba-57.github.io/dog-walking-website/#admin",
+    "Review the request in the private dashboard:",
+    WEBSITE + "#admin",
     "",
-    "The customer has only received a request receipt, not walk approval.",
+    "The customer receives a request receipt, not approval.",
   ].join("\n");
-  const toHtml = (text) => '<div style="font:16px/1.5 Arial,sans-serif;white-space:pre-line">' + emailSafe(text) + "</div>";
   return [
-    { to: [fields.p_email], subject: "Paws Next Door — we received your walk request", text: customer, html: toHtml(customer) },
-    { to: [adminEmail], subject: "Paws Next Door — new walk request to review", text: admin, html: toHtml(admin) },
+    {
+      to: [fields.p_email],
+      subject: "Paws Next Door — we received your walk request",
+      text: customer,
+      html: html(customer),
+    },
+    {
+      to: [adminEmail],
+      subject: "Paws Next Door — new walk request to review",
+      text: admin,
+      html: html(admin),
+    },
   ];
 }
-
-export async function notifyBooking({ env, fetchImpl, id, fields }) {
-  const key = env.get("RESEND_API_KEY");
-  const from = env.get("BOOKING_EMAIL_FROM");
-  const adminEmail = env.get("BOOKING_ADMIN_EMAIL");
-  // Never block a successfully saved booking on missing mail configuration.
-  if (!key || !from || !adminEmail) return { configured: false };
-
-  let startsAt = null;
-  let timezone = "America/Chicago";
-  const url = env.get("SUPABASE_URL");
-  const serviceKey = env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (url && serviceKey) {
-    const headers = { apikey: serviceKey, Authorization: "Bearer " + serviceKey };
-    try {
-      const [slot, settings] = await Promise.all([
-        fetchImpl(url + "/rest/v1/walk_slots?id=eq." + encodeURIComponent(fields.p_slot_id) + "&select=starts_at", {
-          headers, signal: AbortSignal.timeout(5000),
-        }),
-        fetchImpl(url + "/rest/v1/service_settings?id=eq.true&select=timezone", {
-          headers, signal: AbortSignal.timeout(5000),
-        }),
-      ]);
-      if (slot.ok) startsAt = (await slot.json())[0]?.starts_at ?? null;
-      if (settings.ok) timezone = (await settings.json())[0]?.timezone || timezone;
-    } catch {
-      // Booking succeeds even when the optional timing lookup is unavailable.
-    }
-  }
-
-  const emails = bookingEmails({ id, fields, startsAt, timezone, adminEmail });
-  // Resend's unverified test sender is restricted to the account's verified address.
-  // Do not attempt customer delivery to other addresses in this testing mode.
-  const isTestSender = /(?:^|<)onboarding@resend\.dev>?$/i.test(from.trim());
-  const deliverable = isTestSender
-    ? emails.filter((email) => email.to[0].toLowerCase() === adminEmail.toLowerCase())
-    : emails;
-  const results = await Promise.allSettled(deliverable.map(async (email) => {
-    const result = await fetchImpl("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, ...email }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!result.ok) throw new Error("Email provider rejected notification");
-    return true;
-  }));
-  // Do not log recipient addresses, message bodies, keys or email API responses.
-  return { configured: true, sent: results.filter((r) => r.status === "fulfilled").length };
-}
-
-
-// Approval and decline messages are sent only after authenticated admin review succeeds.
 export function reviewEmail({ appointment, status, startsAt, timezone }) {
-  if (!["approved", "declined"].includes(status)) throw Error("Unsupported notification status");
-  const date = formattedWalk(startsAt, timezone);
+  if (!["approved", "declined"].includes(status))
+    throw new Error("Unsupported email event");
   const approved = status === "approved";
-  const content = [
-    "Hi " + appointment.customer_name + ",",
+  const text = [
+    `Hi ${appointment.customer_name},`,
     "",
     approved
-      ? "Good news! Your Paws Next Door dog-walking request has been approved."
-      : "We're sorry, but we can't accommodate your Paws Next Door walk request this time.",
+      ? "Good news! Your Paws Next Door walk request has been approved."
+      : "We’re sorry, but we can’t accommodate your walk request this time.",
     "",
-    "Dog: " + appointment.dog_name,
-    "Requested time: " + date,
+    `Dog: ${appointment.dog_name}`,
+    `Requested time: ${formattedWalk(startsAt, timezone)}`,
     "",
     approved
       ? "Your walk is confirmed for the time above. Our team will contact you if any additional arrangements are needed."
-      : "You are welcome to request another available walking time on our website.",
+      : "You’re welcome to request another available time on our website.",
     "",
+    WEBSITE,
+    "",
+    "To ask about this walk, reply to this email.",
     "Thank you,",
     "Paws Next Door",
   ].join("\n");
   return {
     to: [appointment.email],
-    subject: approved ? "Paws Next Door — your walk is approved" : "Paws Next Door — update on your walk request",
-    text: content,
-    html: '<div style="font:16px/1.5 Arial,sans-serif;white-space:pre-line">' + emailSafe(content) + "</div>",
+    subject: approved
+      ? "Paws Next Door — your walk is approved"
+      : "Paws Next Door — update on your walk request",
+    text,
+    html: html(text),
   };
 }
-
-export async function sendReviewEmail({ env, fetchImpl = fetch, appointment, status, startsAt, timezone }) {
+function mailbox(value, display = false) {
+  if (typeof value !== "string" || /[\r\n]/.test(value)) return null;
+  const text = value.trim();
+  const address =
+    display && text.includes("<")
+      ? text.match(/^[^<>]*<([^<>]+)>$/)?.[1]
+      : text;
+  return address && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address)
+    ? { text, address }
+    : null;
+}
+function mailConfig(env) {
   const key = env.get("RESEND_API_KEY");
-  const from = env.get("BOOKING_EMAIL_FROM");
-  const adminEmail = env.get("BOOKING_ADMIN_EMAIL");
-  if (!key || !from || !adminEmail) return "failed";
-  // Do not send real customer mail from Resend's testing address.
-  if (/(?:^|<)onboarding@resend\.dev>?$/i.test(from.trim())
-    && appointment.email.toLowerCase() !== adminEmail.toLowerCase()) return "test_mode";
-  const email = reviewEmail({ appointment, status, startsAt, timezone });
-  try {
-    const result = await fetchImpl("https://api.resend.com/emails", {
+  const from = mailbox(env.get("BOOKING_EMAIL_FROM"), true);
+  const admin = mailbox(env.get("BOOKING_ADMIN_EMAIL"));
+  const reply = mailbox(
+    env.get("BOOKING_EMAIL_REPLY_TO") || env.get("BOOKING_ADMIN_EMAIL"),
+  );
+  const mode = env.get("BOOKING_EMAIL_MODE") || "test";
+  const test = mailbox(env.get("BOOKING_TEST_RECIPIENT"));
+  if (
+    !key ||
+    !from ||
+    !admin ||
+    !reply ||
+    !["test", "production"].includes(mode) ||
+    (mode === "test" && !test)
+  )
+    return null;
+  if (
+    mode === "production" &&
+    from.address.toLowerCase().endsWith("@resend.dev")
+  )
+    return null;
+  return {
+    key,
+    from: from.text,
+    admin: admin.address,
+    reply: reply.address,
+    allowed: mode === "test" ? test.address : null,
+    mode,
+  };
+}
+export async function deliverAppointmentEmails({ env, fetchImpl = fetch, id }) {
+  const config = mailConfig(env);
+  const url = env.get("SUPABASE_URL"),
+    serviceKey = env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!config || !url || !serviceKey || !uuid.test(id))
+    return { notification: "unconfigured" };
+  const rpc = async (name, body) => {
+    const res = await fetchImpl(url + "/rest/v1/rpc/" + name, {
       method: "POST",
-      headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, ...email }),
+      headers: {
+        apikey: serviceKey,
+        Authorization: "Bearer " + serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(8000),
     });
-    return result.ok ? "sent" : "failed";
+    if (!res.ok) throw new Error("Email queue unavailable");
+    return res.json();
+  };
+  try {
+    const jobs = await rpc("claim_booking_emails", {
+      p_appointment_id: id,
+      p_admin_email: config.admin,
+      p_allowed_recipient: config.allowed,
+    });
+    if (!Array.isArray(jobs)) throw new Error("Invalid queue response");
+    const results = await Promise.all(
+      jobs.map(async (job) => {
+        let accepted = false,
+          error = "provider_unavailable";
+        try {
+          const p = job.payload;
+          const message = ["receipt", "admin_request"].includes(job.event)
+            ? bookingEmails({
+                fields: {
+                  p_customer_name: p.customer_name,
+                  p_email: p.email,
+                  p_phone: p.phone,
+                  p_dog_name: p.dog_name,
+                  p_neighborhood: p.neighborhood,
+                },
+                startsAt: p.starts_at,
+                timezone: p.timezone,
+                adminEmail: config.admin,
+              })[job.event === "receipt" ? 0 : 1]
+            : reviewEmail({
+                appointment: p,
+                status: job.event,
+                startsAt: p.starts_at,
+                timezone: p.timezone,
+              });
+          // Defense in depth: never rely only on a queue filter for test recipients.
+          if (
+            config.allowed &&
+            message.to.some(
+              (to) => to.toLowerCase() !== config.allowed.toLowerCase(),
+            )
+          )
+            throw new Error("Recipient restricted");
+          const response = await fetchImpl("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + config.key,
+              "Content-Type": "application/json",
+              "Idempotency-Key": "paws-booking/" + job.id,
+            },
+            body: JSON.stringify({
+              from: config.from,
+              reply_to: config.reply,
+              ...message,
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (response.ok) {
+            const result = await response.json();
+            accepted = typeof result.id === "string" && !!result.id;
+          } else error = "provider_rejected";
+        } catch {
+          /* Store a fixed code only, never recipients, payloads, keys or provider bodies. */
+        }
+        const recorded = await rpc("finish_booking_email", {
+          p_id: job.id,
+          p_lease_token: job.lease_token,
+          p_status: accepted ? "accepted" : "failed",
+          p_error: accepted ? null : error,
+        });
+        return accepted && recorded === true;
+      }),
+    );
+    return {
+      notification: results.some((ok) => !ok)
+        ? "attention"
+        : jobs.length
+          ? "accepted"
+          : config.mode === "test"
+            ? "test_mode"
+            : "pending",
+    };
   } catch {
-    return "failed";
+    return { notification: "attention" };
   }
+}
+export async function notifyBooking(options) {
+  return deliverAppointmentEmails(options);
 }

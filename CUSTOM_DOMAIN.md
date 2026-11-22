@@ -1,10 +1,10 @@
 # Custom-domain switch: pawsnextdoor.org
 
-**Preparation only — do not perform the settings or DNS changes below until the switch is approved.** This pull request does not merge, publish, change DNS, or update any external configuration.
+**Domain switch completed according to the owner.** The site is now live at https://pawsnextdoor.org/. Keep this document as the original switch/settings reference. Do not repeat DNS or Pages changes for the email PR; its additional sending-domain records are described in [BOOKING-EMAILS.md](BOOKING-EMAILS.md).
 
-- Current working site: **https://ba-57.github.io/dog-walking-website/**
-- Intended site: **https://pawsnextdoor.org/**
-- Intended admin sign-in: **https://pawsnextdoor.org/#admin**
+- Original GitHub address: **https://ba-57.github.io/dog-walking-website/**
+- Current site: **https://pawsnextdoor.org/**
+- Current admin sign-in: **https://pawsnextdoor.org/#admin**
 
 The same GitHub repository, Supabase project, database, administrator accounts, Edge Function, and Turnstile widget will be used. No database migration, data copy, account recreation, or secret rotation is required. Expect to sign in again on the new domain because browser sessions belong to their original origin.
 
