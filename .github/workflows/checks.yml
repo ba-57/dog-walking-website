@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feat/community-booking]
+    branches: ["feat/**"]
 permissions:
   contents: read
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - run: npm test
       - name: Build setup-pending site
         run: npm run build
-      - name: Build and verify production Pages artifact (no deployment)
+      - name: Build and verify custom-domain artifact (no deployment)
         run: npm run build:pages
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}

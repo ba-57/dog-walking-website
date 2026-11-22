@@ -26,17 +26,29 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Build and verify production website
+      # The build fixes base=/ and verifies that public/CNAME is copied to dist/CNAME.
+      # Configure pawsnextdoor.org in Pages settings separately during the approved switch;
+      # a CNAME file does not change the domain setting for an Actions-based site.
+      - name: Build and verify pawsnextdoor.org root website
         run: npm run build:pages
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
-      - name: Configure Pages (requires Pages source set to GitHub Actions)
+      - name: Read existing Pages configuration
+        id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
         with:
           enablement: false
-      - name: Upload built website only
+      - name: Require the coordinated custom-domain setting
+        env:
+          PAGES_HOST: ${{ steps.pages.outputs.host }}
+        run: |
+          if [ "$PAGES_HOST" != "pawsnextdoor.org" ]; then
+            echo "::error::GitHub Pages must be configured for pawsnextdoor.org before publishing this root-path build. Coordinate the domain switch first."
+            exit 1
+          fi
+      - name: Upload built website including verified CNAME
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
