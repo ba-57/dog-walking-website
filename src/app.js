@@ -249,7 +249,7 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
       fields[`p_${key}`] = String(data.get(key) || "").trim();
     });
     try {
-      const id = await api.request(fields, captcha.getToken());
+      await api.request(fields, captcha.getToken());
       state.slot = null;
       state.day = null;
       $("request-form").reset();
@@ -257,7 +257,7 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
       await refreshCalendar({ quiet: true });
       message(
         "request-message",
-        `Thank you! Your request has been received. Reference: ${id}. Your time is held while our team reviews it. We’ll contact you to confirm before the walk.`,
+        "Thank you! Your walk request has been received. We’ll contact you once it’s reviewed. Your walk is not confirmed yet.",
         "success",
       );
       $("request-message").focus();
@@ -336,7 +336,6 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
         field("Email", r.email),
         field("Phone", r.phone),
         field("Neighborhood", r.neighborhood),
-        field("Reference", r.id),
       );
       card.append(top, meta);
       if (r.notes) card.append(el("p", r.notes, "request-notes"));
@@ -359,7 +358,43 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
             true,
           ),
         );
-      card.append(actions);
+      const deliveryJobs = (state.data.emails || []).filter(
+        (job) => job.appointment_id === r.id,
+      );
+      const eventLabels = {
+        receipt: "Customer receipt",
+        admin_request: "Team alert",
+        approved: "Approval email",
+        declined: "Decline email",
+      };
+      const statusLabels = {
+        pending: "Queued",
+        processing: "Sending; retry after two minutes if stalled",
+        accepted: "Accepted by email provider",
+        failed: "Needs attention",
+        suppressed: "Restricted test mode",
+        obsolete: "Not applicable",
+        manual_review: "Manual review needed; contact the neighbor directly",
+      };
+      const delivery = el("div", undefined, "request-email-status");
+      for (const job of deliveryJobs)
+        delivery.append(
+          el(
+            "p",
+            `${eventLabels[job.event] || "Email"}: ${statusLabels[job.status] || "Awaiting update"}`,
+          ),
+        );
+      if (
+        deliveryJobs.some((job) =>
+          ["pending", "failed", "suppressed", "processing"].includes(
+            job.status,
+          ),
+        )
+      )
+        actions.append(
+          actionButton("Retry emails", () => api.retryEmails(r.id), true),
+        );
+      card.append(delivery, actions);
       list.append(card);
     }
   }
@@ -524,13 +559,24 @@ export function initApp({ api, captcha = null, document: doc, window: win }) {
     button.disabled = true;
     message("admin-message", "Saving…");
     try {
-      await action();
+      const result = await action();
       await loadAdmin();
-      message(
-        "admin-message",
-        "Saved. For appointment changes, contact the neighbor directly to confirm.",
-        "success",
-      );
+      const notification = result?.notification;
+      const prefix =
+        result?.updated === false ? "Email retry checked." : "Saved.";
+      const feedback =
+        notification === "accepted"
+          ? `${prefix} Resend accepted the email for delivery. Check the delivery status below; acceptance does not guarantee inbox delivery.`
+          : notification === "test_mode"
+            ? `${prefix} Emails to other addresses are held in restricted test mode.`
+            : notification === "unconfigured"
+              ? `${prefix} Email configuration is incomplete. Notifications remain queued; contact the neighbor directly if needed.`
+              : notification === "attention"
+                ? `${prefix} Email delivery needs attention. Check the queue status, then use Retry emails or contact the neighbor directly.`
+                : notification === "pending"
+                  ? `${prefix} Check the email delivery status below.`
+                  : prefix;
+      message("admin-message", feedback, "success");
     } catch (error) {
       message("admin-message", readableError(error), "error");
     } finally {

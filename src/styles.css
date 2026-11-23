@@ -1287,3 +1287,12 @@ footer small {
   font-size: 13px;
   color: var(--muted);
 }
+
+.request-email-status {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 18px;
+}
+.request-email-status p {
+  margin: 5px 0;
+}

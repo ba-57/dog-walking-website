@@ -5,3 +5,5 @@ dist/
 !.env.example
 work/
 .DS_Store
+
+supabase/.temp/

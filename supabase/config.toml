@@ -4,3 +4,7 @@ project_id = "paws-next-door"
 # Admin operations use Supabase Auth and database membership checks.
 [functions.request-walk]
 verify_jwt = false
+
+# Only signed-in administrators can review requests.
+[functions.review-walk]
+verify_jwt = true

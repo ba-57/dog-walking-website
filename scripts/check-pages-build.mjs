@@ -14,6 +14,7 @@ import {
 
 export function credentialFindings(text) {
   const findings = [];
+  if (/\bre_[A-Za-z0-9_]{24,}/.test(text)) findings.push("Resend API key");
   if (/sb_secret_[A-Za-z0-9_-]{20,}/.test(text))
     findings.push("Supabase secret key");
   if (/\b0x[A-Za-z0-9_-]{33}\b/.test(text))
@@ -73,7 +74,11 @@ export function verifyPagesBuild(root, env) {
     bundleText.push(text);
     for (const finding of credentialFindings(text))
       failures.push(`${name}: ${finding}`);
-    if (/TURNSTILE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/.test(text))
+    if (
+      /TURNSTILE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|BOOKING_ADMIN_EMAIL|BOOKING_EMAIL_FROM|BOOKING_TEST_RECIPIENT/.test(
+        text,
+      )
+    )
       failures.push(`${name}: server-only configuration in browser artifact`);
   }
   const combined = bundleText.join("\n");

@@ -2,15 +2,11 @@
 
 A live, green-and-white community-service website with a rolling 30-day dog-walking calendar, Supabase-backed booking requests, and a private administrator dashboard.
 
-**Current live website (before the domain switch):** https://ba-57.github.io/dog-walking-website/
+**Live website:** https://pawsnextdoor.org/
 
-**Current admin sign-in:** https://ba-57.github.io/dog-walking-website/#admin
+**Admin sign-in:** https://pawsnextdoor.org/#admin
 
-**Prepared custom domain:** https://pawsnextdoor.org/
-
-**Prepared admin URL:** https://pawsnextdoor.org/#admin
-
-The domain switch is pending approval. See [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md) for the checklist and coordinated cutover; this branch does not change DNS, Pages settings, Supabase settings, or the live site.
+The owner reports the custom-domain switch is complete. This email-notification branch preserves the root-path build and domain guard. Its new mail queue, function updates and frontend are not deployed; see [BOOKING-EMAILS.md](BOOKING-EMAILS.md) for the deployed-source review, domain-verification requirements and approval-required release steps.
 
 The redesigned site was published to GitHub Pages after pull request #1 was merged into `main`. GitHub Actions builds and deploys approved changes pushed to `main`. The Supabase database and secure request Edge Function are hosted separately.
 
@@ -53,16 +49,18 @@ See [SETUP.md](SETUP.md) for initial Supabase setup and ongoing operations, and 
 - Explicit read-only design preview and PR checks that build the real production artifact without deployment.
 - The Pages workflow deploys from `main` after reviewed changes are merged; the custom-domain production build uses `/` and includes a verified `public/CNAME` for `pawsnextdoor.org` and reject missing/example configuration or detected private credentials.
 
-Approving in the dashboard **does not send an email or text**. The service team must contact the neighbor directly. Requested times are held until an administrator resolves them; there is no automatic expiry. Availability starts empty and must be added by an administrator. One team can walk one dog at a time; multiple simultaneous walkers are outside this design.
+This draft adds automatic customer receipts, team alerts, and approval/decline emails through server-only Supabase/Resend code, with a private transactional queue and admin retries. It defaults to restricted test sending. Provider acceptance is displayed separately from actual delivery; Resend domain verification and controlled delivery tests are still required. Live `request-walk` already contains legacy receipt/admin mail logic, but the new review function and these queue changes are not deployed. Cancellation and unresolved delivery failures still require direct contact. No customer texts are sent.
+
+Requested times remain held until an administrator resolves them. One team can walk one dog at a time.
 
 ## Source map
 
 - `src/app.js` — public and administrator interface; customer values use text nodes, never HTML insertion.
 - `src/api.js` — Supabase Auth, Edge Function submission, RPCs and paginated administrator reads.
 - `src/calendar.js` — date/window rendering helpers and service-timezone formatting.
-- `supabase/functions/request-walk/` and `supabase/functions/_shared/` — server-only CAPTCHA verification and restricted booking gateway.
+- `supabase/functions/request-walk/`, `review-walk/` and `_shared/` — CAPTCHA booking gateway, admin-authorized review/retry, and server-only transactional email delivery.
 - `src/config.js` — rejects secret/service-role keys during builds.
-- `supabase/migrations/202611100001_booking.sql` — schema, constraints, RLS, grants and RPCs.
+- `supabase/migrations/202611100001_booking.sql` — existing booking schema and security. The new email-outbox migration is prepared separately and must not be applied without approval.
 - `scripts/build-pages.mjs` and `scripts/check-pages-build.mjs` — validated Pages build, asset checks, environment-file checks and credential-pattern scanning.
 - `.github/workflows/pages.yml` — main-only GitHub Pages deployment, guarded until Pages is configured for the new domain; `checks.yml` never deploys.
 - `tests/` — date boundaries, DOM flows, key validation, and PostgreSQL permissions and lifecycle checks.

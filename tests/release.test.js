@@ -83,6 +83,9 @@ test("Pages production configuration requires all public values and forces the c
 });
 test("release scanning distinguishes public keys from private credentials", () => {
   assert.deepEqual(credentialFindings(JSON.stringify(valid())), []);
+  assert.deepEqual(credentialFindings("re_" + "x".repeat(30)), [
+    "Resend API key",
+  ]);
   assert.deepEqual(credentialFindings("sb_secret_" + "x".repeat(30)), [
     "Supabase secret key",
   ]);

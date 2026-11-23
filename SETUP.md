@@ -1,6 +1,6 @@
 # Paws Next Door — setup and operations
 
-**Status: LIVE.** The redesigned Paws Next Door website is published at https://ba-57.github.io/dog-walking-website/ with its private admin interface at https://ba-57.github.io/dog-walking-website/#admin. The initial Supabase setup, Turnstile configuration, and launch checks have been completed. **Custom-domain switch pending:** this branch prepares https://pawsnextdoor.org/ and https://pawsnextdoor.org/#admin. Follow [CUSTOM_DOMAIN.md](CUSTOM_DOMAIN.md) when the switch is approved; no live settings have been changed by these repository edits. The sections below remain as reference material for recreating a test environment, maintaining the service, or onboarding another administrator. Do **not** rerun the database migration in the existing production project.
+**Status: LIVE at https://pawsnextdoor.org/** with the private admin interface at https://pawsnextdoor.org/#admin. The existing booking system remains in place. The email improvements in this branch require a separately approved migration, Edge Function deployment and release; see [BOOKING-EMAILS.md](BOOKING-EMAILS.md). Do not rerun the original database migration in production.
 
 ## 1. Create Supabase and apply the database migration
 
@@ -79,7 +79,7 @@ Use fictional details only until these checks pass:
 
 1. Sign in as admin and add future 30-minute times. Confirm the displayed timezone and date boundaries. Confirm overlapping times are rejected.
 2. Open the public site in two separate private browser windows. Select the **same** slot in both, then submit both forms as close together as possible. Complete each window’s security check. Exactly one should succeed; the other should be told to choose another time. Check the dashboard for one active request.
-3. Confirm the pending time disappears publicly, approve the request, and confirm it stays unavailable. Contacting the neighbor is a manual step; no email/SMS is sent by this application.
+3. Confirm the pending time disappears publicly, approve the request, and confirm it stays unavailable. With this branch deployed, check that the decision email is queued/accepted and delivered; cancellation still requires manual contact. No SMS is sent.
 4. Decline or cancel a test request. Its future slot should become available again. Closed/blocked/past/out-of-window slots must never accept a request, including from an already-open stale browser tab.
 5. Add a date block. Public slots on that date should disappear; unblocking restores eligible times. A date with active requests cannot be blocked until those requests are handled.
 6. Sign out. The dashboard must clear. Use a separate, non-admin test Auth account to confirm it cannot load records or call admin functions. A direct REST read of `appointments` with only the public key must fail. With a non-admin user token it must return no rows. `admin_users` must be inaccessible in both cases.
@@ -97,7 +97,7 @@ The review workflow builds and tests without publishing. The separate Pages work
 ## 7. Operating the service
 
 - Resolve pending requests promptly. They reserve availability indefinitely until approved, declined or cancelled.
-- Contact the neighbor after approving/declining/cancelling; automated notifications are not included. Agree on a meeting point after confirmation rather than collecting full addresses publicly.
+- Follow the email delivery and retry status in the administrator dashboard after the approved email release. Before that release, and for cancellations or delivery failures, contact the neighbor directly. Agree on a meeting point after confirmation rather than collecting full addresses publicly.
 - Define your service area, response time, volunteer screening and safe dog-handling practices before launch. The site avoids making unverified claims about screening, insurance or coverage.
 - Restrict Supabase project access, enable project backups appropriate to your plan, and keep dependencies current. Do not enable public table policies or expose service-role credentials to “fix” permissions.
 - Agree on a retention period and remove expired customer data through trusted Supabase administration. The public FAQ lets neighbors request deletion through the team. No automatic retention job or automated outbound messaging is configured.
